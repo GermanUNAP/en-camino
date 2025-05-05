@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginWithEmail, loginWithGoogle } from "@/lib/authService";
 import { Button } from "@/components/ui/button";
+import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -55,8 +56,9 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <p className="mb-2">O inicia sesión con:</p>
-          <Button onClick={handleGoogleLogin} variant="outline" className="w-full">
-            Google
+          <Button onClick={handleGoogleLogin} variant="outline" className="w-full mt-4 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white">
+            <FcGoogle className="text-2xl" />
+            Continuar con Google
           </Button>
         </div>
       </div>

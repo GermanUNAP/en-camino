@@ -24,8 +24,7 @@ export interface Product {
   description?: string;
   price: number;
   imageUrl?: string;
-  images: string[]; // Add the 'images' property as it's required by ProductCard
-  // Add other product properties as needed to match your data
+  images: string[];
 }
 
 export interface Store {
@@ -41,7 +40,6 @@ export interface Store {
   socialMedia?: SocialMediaLink[];
 }
 
-// Mapeo de plataformas a colores
 const socialMediaConfig: { [key: string]: { color: string } } = {
   facebook: { color: "#1877F2" },
   twitter: { color: "#1DA1F2" },
@@ -50,7 +48,6 @@ const socialMediaConfig: { [key: string]: { color: string } } = {
   linkedin: { color: "#0A66C2" },
   whatsapp: { color: "#25D366" },
   tiktok: { color: "#000000" },
-  // Añade más plataformas y sus configuraciones si es necesario
 };
 
 export default function StoreViewPage() {
@@ -63,7 +60,7 @@ export default function StoreViewPage() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const storeUrl = typeof window !== "undefined" ? window.location.href : "";
-  const authorizedUserEmail = ["german@team.nspsac.com", "carlosmerma99@gmail.com"] ;
+  const authorizedUserEmail = ["german@team.nspsac.com", "carlosmerma99@gmail.com"];
 
   useEffect(() => {
     const auth = getAuth(app);
@@ -166,7 +163,6 @@ export default function StoreViewPage() {
     <div className="container mx-auto py-4">
       {store.coverImage ? (
         <div className="flex flex-col lg:flex-row items-start gap-4 mb-6">
-          {/* Imagen portada */}
           <div className="relative w-full lg:w-1/2 aspect-[15/8] rounded-md overflow-hidden">
             <Image
               src={store.coverImage}
@@ -190,7 +186,6 @@ export default function StoreViewPage() {
                 </Button>
               )}
 
-              {/* Sección de Redes Sociales */}
               {store.socialMedia && store.socialMedia.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-md font-semibold text-foreground mb-2">Redes Sociales</h3>
@@ -199,7 +194,13 @@ export default function StoreViewPage() {
                       const config = socialMediaConfig[social.platform.toLowerCase()];
                       if (config) {
                         return (
-                          <Link key={index} href={social.link} target="_blank" rel="noopener noreferrer">
+                          <Link 
+                            key={index} 
+                            href={social.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            legacyBehavior
+                          >
                             <Button
                               size="sm"
                               style={{ backgroundColor: config.color, color: "white" }}
@@ -211,7 +212,13 @@ export default function StoreViewPage() {
                         );
                       }
                       return (
-                        <Link key={index} href={social.link} target="_blank" rel="noopener noreferrer">
+                        <Link 
+                          key={index} 
+                          href={social.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          legacyBehavior
+                        >
                           <Button size="sm" variant="secondary">
                             {social.platform}
                           </Button>
@@ -233,12 +240,12 @@ export default function StoreViewPage() {
                   </div>
                 ) : isAuthorized ? (
                   <div className="flex gap-2 w-full justify-center">
-                    <Link href={`/tienda/${storeId}/add-product`} className="w-1/2">
+                    <Link href={`/tienda/${storeId}/add-product`} className="w-1/2" legacyBehavior>
                       <Button size="sm" className="w-full">
                         Añadir Producto
                       </Button>
                     </Link>
-                    <Link href={`/tienda/${storeId}/edit`} className="w-1/2">
+                    <Link href={`/tienda/${storeId}/edit`} className="w-1/2" legacyBehavior>
                       <Button size="sm" className="w-full flex items-center justify-center gap-1">
                         Editar Tienda <Edit className="h-4 w-4" />
                       </Button>
@@ -281,7 +288,6 @@ export default function StoreViewPage() {
                 </Button>
               )}
 
-              {/* Sección de Redes Sociales */}
               {store.socialMedia && store.socialMedia.length > 0 && (
                 <div className="mt-4">
                   <h3 className="text-md font-semibold text-foreground mb-2">Redes Sociales</h3>
@@ -290,7 +296,13 @@ export default function StoreViewPage() {
                       const config = socialMediaConfig[social.platform.toLowerCase()];
                       if (config) {
                         return (
-                          <Link key={index} href={social.link} target="_blank" rel="noopener noreferrer">
+                          <Link 
+                            key={index} 
+                            href={social.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            legacyBehavior
+                          >
                             <Button
                               size="sm"
                               style={{ backgroundColor: config.color, color: "white" }}
@@ -301,9 +313,14 @@ export default function StoreViewPage() {
                           </Link>
                         );
                       }
-                      // Si la plataforma no está configurada, muestra un botón genérico
                       return (
-                        <Link key={index} href={social.link} target="_blank" rel="noopener noreferrer">
+                        <Link 
+                          key={index} 
+                          href={social.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          legacyBehavior
+                        >
                           <Button size="sm" variant="secondary">
                             {social.platform}
                           </Button>
@@ -325,12 +342,12 @@ export default function StoreViewPage() {
                   </div>
                 ) : isAuthorized ? (
                   <div className="flex gap-2 w-full justify-center">
-                    <Link href={`/tienda/${storeId}/add-product`} className="w-1/2">
+                    <Link href={`/tienda/${storeId}/add-product`} className="w-1/2" legacyBehavior>
                       <Button size="sm" className="w-full flex items-center justify-center gap-1">
                         Añadir Producto
                       </Button>
                     </Link>
-                    <Link href={`/tienda/${storeId}/edit`} className="w-1/2">
+                    <Link href={`/tienda/${storeId}/edit`} className="w-1/2" legacyBehavior>
                       <Button size="sm" className="w-full flex items-center justify-center gap-1">
                         Editar Tienda <Edit className="h-4 w-4" />
                       </Button>
