@@ -104,29 +104,38 @@ export default function HomePage() {
       try {
         const { stores } = await getPaginatedStores();
         setLatestStores(stores);
-      } catch (e: any) {
-        setErrorStores(`Error al cargar las últimas tiendas: ${e.message}`);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setErrorStores(`Error al cargar las últimas tiendas: ${e.message}`);
+        } else {
+          setErrorStores("Error desconocido al cargar las últimas tiendas.");
+        }
       } finally {
         setLoadingStores(false);
       }
     };
-
+  
     const fetchLatestProducts = async () => {
       setLoadingProducts(true);
       setErrorProducts(null);
       try {
         const products = await getLatestProductsFromFirebase();
         setLatestProducts(products);
-      } catch (e: any) {
-        setErrorProducts(`Error al cargar los últimos productos: ${e}`);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setErrorProducts(`Error al cargar los últimos productos: ${e.message}`);
+        } else {
+          setErrorProducts("Error desconocido al cargar los últimos productos.");
+        }
       } finally {
         setLoadingProducts(false);
       }
     };
-
+  
     fetchLatestStores();
     fetchLatestProducts();
   }, []);
+  
 
   return (
     <div className="bg-gradient-to-br from-indigo-200 via-purple-300 to-pink-200 min-h-screen py-10">
