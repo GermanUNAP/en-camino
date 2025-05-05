@@ -23,12 +23,10 @@ export default function Navbar() {
   const isAuthorized = user?.email === "german@team.nspsac.com" || user?.email === "carlosmerma99@gmail.com";
   const pathname = usePathname();
 
-  const [navbarCategories, setNavbarCategories] = useState(
-    STORE_CATEGORIES.map((cat) => ({
-      label: cat.name,
-      href: `/categorias/${cat.slug}`,
-    }))
-  );
+  const navbarCategories = STORE_CATEGORIES.map((cat) => ({
+    label: cat.name,
+    href: `/categorias/${cat.slug}`,
+  }));
 
   useEffect(() => {
     const auth = getAuth(app);
