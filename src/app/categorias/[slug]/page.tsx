@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import { QueryDocumentSnapshot } from "firebase/firestore";
 
 interface StoreCardProps {
   store: Store;
@@ -59,19 +59,15 @@ export default function CategoryStoresPage() {
 
       setLoading(true);
       setError(null);
-      try {
-        const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStoresByCategory(
-          slug,
-          lastDoc as QueryDocumentSnapshot // Explicitly cast to QueryDocumentSnapshot
-        );
-        setStores((prevStores) => [...prevStores, ...newStores]);
-        setLastVisible(newLastVisible);
-        setHasMore(newStores.length === 6);
-      } catch (err: any) {
-        setError(err.message || "Error al cargar las tiendas.");
-      } finally {
-        setLoading(false);
-      }
+      
+      const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStoresByCategory(
+        slug,
+        lastDoc as QueryDocumentSnapshot // Explicitly cast to QueryDocumentSnapshot
+      );
+      setStores((prevStores) => [...prevStores, ...newStores]);
+      setLastVisible(newLastVisible);
+      setHasMore(newStores.length === 6);
+      
 
       if (isInitialLoad.current) {
         const category = STORE_CATEGORIES.find((cat) => cat.slug === slug);
