@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { STORE_CATEGORIES } from "@/lib/constants";
+import { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 interface StoreCardProps {
   store: Store;
@@ -47,30 +48,39 @@ export default function CategoryStoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [categoryName, setCategoryName] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
-  const fetchStoresByCategory = useCallback(async () => {
-    if (!slug || loading || !hasMore) return;
+  const fetchStores = useCallback(
+    async (lastDoc: QueryDocumentSnapshot | null) => {
+      if (!slug || loading || !hasMore) return;
 
-    setLoading(true);
-    setError(null);
-      const { stores: newStores, lastVisible: newLastVisible } =
-        await getPaginatedStoresByCategory(slug, lastVisible);
-
-      setStores((prevStores) => [...prevStores, ...newStores]);
-      setLastVisible(newLastVisible);
-      setHasMore(newStores.length === 6); // si es menos de 6, no hay más páginas
+      setLoading(true);
+      setError(null);
+      try {
+        const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStoresByCategory(
+          slug,
+          lastDoc as QueryDocumentSnapshot // Explicitly cast to QueryDocumentSnapshot
+        );
+        setStores((prevStores) => [...prevStores, ...newStores]);
+        setLastVisible(newLastVisible);
+        setHasMore(newStores.length === 6);
+      } catch (err: any) {
+        setError(err.message || "Error al cargar las tiendas.");
+      } finally {
+        setLoading(false);
+      }
 
       if (isInitialLoad.current) {
         const category = STORE_CATEGORIES.find((cat) => cat.slug === slug);
         setCategoryName(category?.name || slug);
         isInitialLoad.current = false;
       }
-    
-  }, [slug, lastVisible, hasMore, loading]);
+    },
+    [slug, hasMore, loading]
+  );
 
   useEffect(() => {
     setStores([]);
@@ -81,11 +91,15 @@ export default function CategoryStoresPage() {
     isInitialLoad.current = true;
 
     const timeout = setTimeout(() => {
-      fetchStoresByCategory();
-    }, 100); // previene parpadeos
+      fetchStores(null);
+    }, 100);
 
     return () => clearTimeout(timeout);
-  }, [slug]);
+  }, [slug, fetchStores]);
+
+  const loadMore = useCallback(() => {
+    fetchStores(lastVisible);
+  }, [fetchStores, lastVisible]);
 
   return (
     <div className="container mx-auto py-10">
@@ -105,7 +119,7 @@ export default function CategoryStoresPage() {
 
       {hasMore && (
         <div className="flex justify-center mt-6">
-          <Button onClick={fetchStoresByCategory} disabled={loading}>
+          <Button onClick={loadMore} disabled={loading}>
             {loading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : "Cargar más"}
           </Button>
         </div>
