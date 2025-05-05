@@ -210,18 +210,20 @@ export const getPaginatedStoresByCategory = async (categorySlug: string, lastVis
     const stores: Store[] = [];
     let newLastVisible: QueryDocumentSnapshot | null = null;
 
-    for (const doc of snapshot.docs) {
-      const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
-      const productsCollection = collection(db, "stores", doc.id, "products");
-      const productsSnapshot = await getDocs(productsCollection);
-      const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, storeId: doc.id, ...productDoc.data() } as ProductData & { id: string }));
+    if (!snapshot.empty) {
+      for (const doc of snapshot.docs) {
+        const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
+        const productsCollection = collection(db, "stores", doc.id, "products");
+        const productsSnapshot = await getDocs(productsCollection);
+        const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, storeId: doc.id, ...productDoc.data() } as ProductData & { id: string }));
 
-      stores.push({
-        id: doc.id,
-        ...storeData,
-        products,
-      } as Store);
-      newLastVisible = doc;
+        stores.push({
+          id: doc.id,
+          ...storeData,
+          products,
+        } as Store);
+        newLastVisible = doc;
+      }
     }
 
     return { stores, lastVisible: newLastVisible };

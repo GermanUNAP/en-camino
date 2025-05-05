@@ -102,7 +102,7 @@ export default function HomePage() {
       setLoadingStores(true);
       setErrorStores(null);
       try {
-        const { stores } = await getPaginatedStores();
+        const { stores } = await getPaginatedStores(null);
         setLatestStores(stores);
       } catch (e: unknown) {
         if (e instanceof Error) {
