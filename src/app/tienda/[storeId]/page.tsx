@@ -163,12 +163,12 @@ export default function StoreViewPage() {
     <div className="container mx-auto py-4">
       {store.coverImage ? (
         <div className="flex flex-col lg:flex-row items-start gap-4 mb-6">
-          <div className="relative w-full lg:w-1/2 aspect-[15/8] rounded-md overflow-hidden">
+          <div className="relative w-full lg:w-1/2 aspect-[5/4] rounded-md overflow-hidden bg-gray-100">
             <Image
               src={store.coverImage}
               alt={`Portada de ${store.name}`}
               fill
-              className="object-cover"
+              className="object-contain w-full h-full"
               onError={(e) => {
                 console.error("Error loading image:", e);
               }}
@@ -239,14 +239,14 @@ export default function StoreViewPage() {
                     <Loader2 className="animate-spin h-6 w-6" />
                   </div>
                 ) : isAuthorized ? (
-                  <div className="flex gap-2 w-full justify-center">
-                    <Link href={`/tienda/${storeId}/add-product`} className="w-1/2" legacyBehavior>
-                      <Button size="sm" className="w-full">
+                  <div className="flex gap-2 justify-center">
+                    <Link href={`/tienda/${storeId}/add-product`} legacyBehavior>
+                      <Button size="sm" className="flex-grow">
                         Añadir Producto
                       </Button>
                     </Link>
-                    <Link href={`/tienda/${storeId}/edit`} className="w-1/2" legacyBehavior>
-                      <Button size="sm" className="w-full flex items-center justify-center gap-1">
+                    <Link href={`/tienda/${storeId}/edit`} legacyBehavior>
+                      <Button size="sm" className="flex items-center justify-center gap-1 flex-grow">
                         Editar Tienda <Edit className="h-4 w-4" />
                       </Button>
                     </Link>
