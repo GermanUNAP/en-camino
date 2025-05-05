@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getPaginatedStoresByCategory, Store } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -36,6 +35,7 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
       {store.description && (
         <p className="text-sm text-muted-foreground truncate">{store.description}</p>
       )}
+      <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
     </Link>
   </div>
 );
@@ -45,50 +45,55 @@ export default function CategoryStoresPage() {
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
   const [categoryName, setCategoryName] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchStoresByCategory = useCallback(async () => {
-    if (!hasMore || loading || !slug) return;
+    if (!slug || loading || !hasMore) return;
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log("Fetching stores for category:", slug); // Log del slug directamente
       const { stores: newStores, lastVisible: newLastVisible } =
         await getPaginatedStoresByCategory(slug, lastVisible);
-      console.log("Fetched", newStores.length, "stores.");
+
       setStores((prevStores) => [...prevStores, ...newStores]);
       setLastVisible(newLastVisible);
+      setHasMore(newStores.length === 6); // si es menos de 6, no hay más páginas
 
-      if (newStores.length < 6) {
-        setHasMore(false);
+      if (isInitialLoad.current) {
+        const category = STORE_CATEGORIES.find((cat) => cat.slug === slug);
+        setCategoryName(category?.name || slug);
+        isInitialLoad.current = false;
       }
-
-      const category = STORE_CATEGORIES.find((cat) => cat.slug === slug);
-      setCategoryName(category?.name || slug);
     } catch (e: any) {
       console.error(`Error al cargar las tiendas de la categoría ${slug}:`, e);
-      setError(`Error al cargar las tiendas de la categoría ${slug}: ${e.message}`);
+      setError(`Error al cargar las tiendas: ${e.message}`);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [hasMore, loading, lastVisible, slug]); // 'slug' ahora es una dependencia
+  }, [slug, lastVisible, hasMore, loading]);
 
   useEffect(() => {
     setStores([]);
     setLastVisible(null);
     setHasMore(true);
-    setLoading(true);
-    fetchStoresByCategory();
-  }, [slug, fetchStoresByCategory]); // 'slug' también aquí
+    setError(null);
+    setCategoryName(null);
+    isInitialLoad.current = true;
 
-  const loadMore = () => {
-    fetchStoresByCategory();
-  };
+    const timeout = setTimeout(() => {
+      fetchStoresByCategory();
+    }, 100); // previene parpadeos
+
+    return () => clearTimeout(timeout);
+  }, [slug]);
 
   return (
     <div className="container mx-auto py-10">
@@ -96,23 +101,19 @@ export default function CategoryStoresPage() {
         {categoryName ? `Tiendas en la categoría: ${categoryName}` : `Tiendas en la categoría: ${slug}`}
       </h1>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-6">
-          <Loader2 className="animate-spin h-10 w-10" />
-        </div>
-      ) : stores.length > 0 ? (
+      {stores.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {stores.map((store) => (
             <StoreCard key={store.id} store={store} />
           ))}
         </div>
       ) : (
-        <p className="text-center text-muted-foreground">No hay tiendas en esta categoría.</p>
+        !loading && <p className="text-center text-muted-foreground">No hay tiendas en esta categoría.</p>
       )}
 
-      {hasMore && !loading && (
+      {hasMore && (
         <div className="flex justify-center mt-6">
-          <Button onClick={loadMore} disabled={loading}>
+          <Button onClick={fetchStoresByCategory} disabled={loading}>
             {loading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : "Cargar más"}
           </Button>
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
-import { createStore, uploadStoreCoverImage } from "@/lib/storeService"; // Importa uploadStoreCoverImage
+import { createStore, uploadStoreCoverImage } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid'; // Importa uuidv4
+import { v4 as uuidv4 } from 'uuid';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +34,11 @@ interface ProductFormData {
   description?: string;
   price: number;
   images: File[];
+}
+
+interface SocialMedia {
+  platform: string;
+  link: string;
 }
 
 export default function CreateStorePage() {
@@ -54,6 +59,12 @@ export default function CreateStorePage() {
     images: [],
   });
   const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+  const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMedia[]>([]);
+  const [newSocialMedia, setNewSocialMedia] = useState<SocialMedia>({
+    platform: "",
+    link: "",
+  });
+  const [isAddingSocialMedia, setIsAddingSocialMedia] = useState(false);
 
   useEffect(() => {
     const auth = getAuth(app);
@@ -72,10 +83,12 @@ export default function CreateStorePage() {
     setIsSubmittingStore(true);
     toast.loading("Creando tu tienda...", { id: "create-store" });
     try {
-      let coverImageUrl: any;
+      let coverImageUrl: string | undefined = undefined;
       if (storeCoverImage) {
-        coverImageUrl = await uploadStoreCoverImage(storeCoverImage, uuidv4()); 
-        if (!coverImageUrl) {
+        const uploadResult = await uploadStoreCoverImage(storeCoverImage, uuidv4());
+        if (uploadResult) {
+          coverImageUrl = uploadResult;
+        } else {
           toast.error("Error al subir la imagen de portada.", { id: "create-store" });
           setIsSubmittingStore(false);
           return;
@@ -89,10 +102,11 @@ export default function CreateStorePage() {
         address: storeAddress,
         phone: storePhone,
         category: storeCategory,
-        coverImage: coverImageUrl, 
+        coverImage: coverImageUrl,
+        socialMedia: socialMediaLinks, // Guarda los links de redes sociales
       });
       toast.success(`Tienda "${storeName}" creada correctamente`, { id: "create-store" });
-      router.push(`/store/${storeId}`);
+      router.push(`/tienda/${storeId}`);
     } catch (error: any) {
       toast.error(`Error al crear la tienda: ${error.message}`, { id: "create-store" });
     } finally {
@@ -107,6 +121,7 @@ export default function CreateStorePage() {
     }
     setIsSubmittingProduct(true);
     toast.loading("Añadiendo producto...", { id: "add-product" });
+    // Simulación de la creación del producto (debes implementar la lógica real)
     setTimeout(() => {
       toast.success(`Producto "${newProduct.name}" añadido.`, { id: "add-product" });
       setNewProduct({ name: "", description: "", price: 0, images: [] });
@@ -130,12 +145,25 @@ export default function CreateStorePage() {
     }
   };
 
+  const handleAddSocialMediaLink = () => {
+    if (newSocialMedia.platform && newSocialMedia.link) {
+      setSocialMediaLinks([...socialMediaLinks, { ...newSocialMedia }]);
+      setNewSocialMedia({ platform: "", link: "" });
+      setIsAddingSocialMedia(false);
+    } else {
+      toast.error("Por favor, selecciona una plataforma e ingresa el link.");
+    }
+  };
+
+  const handleRemoveSocialMediaLink = (indexToRemove: number) => {
+    setSocialMediaLinks(socialMediaLinks.filter((_, index) => index !== indexToRemove));
+  };
 
   return (
     <div className="container mx-auto py-4">
       <h1 className="text-3xl font-bold mb-6">Crear una tienda</h1>
 
-      {user?.email === "german@team.nspsac.com" ? (
+      {user?.email === "german@team.nspsac.com" || user?.email === "carlosmerma99@gmail.com" ?  (
         <form
           onSubmit={handleCreateStore}
           className="max-w-md mx-auto bg-white p-6 rounded-md shadow-md"
@@ -220,6 +248,76 @@ export default function CreateStorePage() {
             />
           </div>
 
+          <div className="mb-4">
+            <Label className="block text-sm font-bold mb-2">
+              Redes Sociales (Opcional)
+            </Label>
+            {socialMediaLinks.map((link, index) => (
+              <div key={index} className="flex items-center space-x-2 mb-2">
+                <Input value={`${link.platform}: ${link.link}`} readOnly className="flex-1" />
+                <Button type="button" size="sm" variant="destructive" onClick={() => handleRemoveSocialMediaLink(index)}>
+                  Eliminar
+                </Button>
+              </div>
+            ))}
+            <Dialog open={isAddingSocialMedia} onOpenChange={setIsAddingSocialMedia}>
+              <DialogTrigger asChild>
+                <Button type="button" size="sm">
+                  Añadir Red Social
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Añadir Link de Red Social</DialogTitle>
+                  <DialogDescription>
+                    Selecciona la plataforma e ingresa el link.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="social-platform" className="text-right">
+                      Plataforma
+                    </Label>
+                    <select
+                      id="social-platform"
+                      className="col-span-3 border rounded p-2"
+                      value={newSocialMedia.platform}
+                      onChange={(e) =>
+                        setNewSocialMedia({ ...newSocialMedia, platform: e.target.value })
+                      }
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="tiktok">Tiktok</option>
+                      {/* Añade más plataformas si es necesario */}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="social-link" className="text-right">
+                      Link
+                    </Label>
+                    <Input
+                      id="social-link"
+                      className="col-span-3"
+                      type="url"
+                      value={newSocialMedia.link}
+                      onChange={(e) =>
+                        setNewSocialMedia({ ...newSocialMedia, link: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="secondary" onClick={() => setIsAddingSocialMedia(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAddSocialMediaLink}>Añadir</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <Button type="submit" className="w-full" disabled={isSubmittingStore}>
             {isSubmittingStore ? "Creando..." : "Crear Tienda"}
           </Button>
@@ -230,111 +328,6 @@ export default function CreateStorePage() {
         </p>
       )}
 
-      {user?.email === "german@team.nspsac.sac" && (
-        <div className="mt-8 max-w-md mx-auto bg-white p-6 rounded-md shadow-md">
-          <h2 className="text-xl font-bold mb-4">Añadir Nuevo Producto</h2>
-          <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
-            <DialogTrigger asChild>
-              <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                <Plus className="mr-2" /> Añadir Producto
-              </div>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Detalles del Producto</DialogTitle>
-                <DialogDescription>
-                  Ingresa la información del nuevo producto para tu tienda.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="prod-name" className="text-right">
-                    Nombre
-                  </Label>
-                  <Input
-                    id="prod-name"
-                    className="col-span-3"
-                    value={newProduct.name}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="prod-desc" className="text-right">
-                    Descripción
-                  </Label>
-                  <Textarea
-                    id="prod-desc"
-                    className="col-span-3"
-                    value={newProduct.description}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="prod-price" className="text-right">
-                    Precio
-                  </Label>
-                  <Input
-                    id="prod-price"
-                    type="number"
-                    className="col-span-3"
-                    value={newProduct.price}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        price: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="prod-images" className="text-right">
-                    Fotos
-                  </Label>
-                  <Input
-                    id="prod-images"
-                    type="file"
-                    multiple
-                    className="col-span-3"
-                    onChange={handleImageChange}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsAddingProduct(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleAddProduct}
-                  disabled={isSubmittingProduct}
-                >
-                  {isSubmittingProduct ? "Añadiendo..." : "Añadir Producto"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <div className="mt-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <span className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2">
-                  Opciones del Producto
-                </span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                <DropdownMenuItem>Editar</DropdownMenuItem>
-                <DropdownMenuItem>Eliminar</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -14,12 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { STORE_CATEGORIES } from "@/lib/constants"; 
+import { STORE_CATEGORIES } from "@/lib/constants";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const isGerman = user?.email === "german@team.nspsac.com";
+  const isAuthorized = user?.email === "german@team.nspsac.com" || "carlosmerma99@gmail.com";
+  const pathname = usePathname();
 
   const [navbarCategories, setNavbarCategories] = useState(
     STORE_CATEGORIES.map((cat) => ({
@@ -64,7 +66,12 @@ export default function Navbar() {
         <div className="hidden md:flex flex-wrap items-center justify-end gap-4">
           {navbarCategories.map((cat) => (
             <Link href={cat.href} key={cat.label}>
-              <Button variant="ghost" className="text-primary hover:text-primary/80 font-semibold">
+              <Button
+                variant="ghost"
+                className={`text-primary hover:text-primary/80 font-semibold ${
+                  pathname === cat.href ? "underline text-primary/90" : ""
+                }`}
+              >
                 {cat.label}
               </Button>
             </Link>
@@ -102,7 +109,7 @@ export default function Navbar() {
                     Ver perfil
                   </DropdownMenuItem>
                 </Link>
-                {isGerman && (
+                {isAuthorized && (
                   <Link href="/createStore">
                     <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80">
                       Crear tienda
@@ -123,7 +130,12 @@ export default function Navbar() {
         <div className="mt-4 flex flex-col md:hidden gap-2">
           {navbarCategories.map((cat) => (
             <Link href={cat.href} key={cat.label}>
-              <Button variant="ghost" className="text-primary hover:text-primary/80 font-semibold">
+              <Button
+                variant="ghost"
+                className={`text-primary hover:text-primary/80 font-semibold ${
+                  pathname === cat.href ? "underline text-primary/90" : ""
+                }`}
+              >
                 {cat.label}
               </Button>
             </Link>
@@ -148,7 +160,7 @@ export default function Navbar() {
                   Ver perfil
                 </Button>
               </Link>
-              {isGerman && (
+              {isAuthorized && (
                 <Link href="/createStore">
                   <Button className="text-foreground font-semibold hover:opacity-80">
                     Crear tienda
