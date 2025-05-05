@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Image from "next/image";
 import { Menu } from "lucide-react";
@@ -18,9 +18,9 @@ import { STORE_CATEGORIES } from "@/lib/constants";
 import { usePathname } from "next/navigation";
 
 export default function Navbar() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAuthorized = user?.email === "german@team.nspsac.com" || "carlosmerma99@gmail.com";
+  const isAuthorized = user?.email === "german@team.nspsac.com" || user?.email === "carlosmerma99@gmail.com";
   const pathname = usePathname();
 
   const [navbarCategories, setNavbarCategories] = useState(
