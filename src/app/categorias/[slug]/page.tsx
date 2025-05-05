@@ -57,8 +57,6 @@ export default function CategoryStoresPage() {
 
     setLoading(true);
     setError(null);
-
-    try {
       const { stores: newStores, lastVisible: newLastVisible } =
         await getPaginatedStoresByCategory(slug, lastVisible);
 
@@ -71,13 +69,7 @@ export default function CategoryStoresPage() {
         setCategoryName(category?.name || slug);
         isInitialLoad.current = false;
       }
-    } catch (e: any) {
-      console.error(`Error al cargar las tiendas de la categoría ${slug}:`, e);
-      setError(`Error al cargar las tiendas: ${e.message}`);
-      setHasMore(false);
-    } finally {
-      setLoading(false);
-    }
+    
   }, [slug, lastVisible, hasMore, loading]);
 
   useEffect(() => {

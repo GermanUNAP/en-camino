@@ -157,43 +157,40 @@ export const getStoresByCategory = async (categorySlug: string): Promise<Store[]
   }
 };
 
-export const getPaginatedStoresByCategory = async (categorySlug: string, lastVisible?: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
-  try {
-    const storesCollection = collection(db, "stores");
-    const constraints: QueryConstraint[] = [
-      where("category", "==", categorySlug),
-      limit(STORES_PER_PAGE),
-    ];
+export const getPaginatedStoresByCategory = async (categorySlug: string, lastVisible: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
 
-    if (lastVisible) {
-      constraints.push(startAfter(lastVisible));
-    }
+  const storesCollection = collection(db, "stores");
+  const constraints: QueryConstraint[] = [
+    where("category", "==", categorySlug),
+    limit(STORES_PER_PAGE),
+  ];
 
-    const q = query(storesCollection, ...constraints);
-    const snapshot = await getDocs(q);
-
-    const stores: Store[] = [];
-    let newLastVisible: QueryDocumentSnapshot | null = null;
-
-    for (const doc of snapshot.docs) {
-      const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
-      const productsCollection = collection(db, "stores", doc.id, "products");
-      const productsSnapshot = await getDocs(productsCollection);
-      const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, ...productDoc.data() }));
-
-      stores.push({
-        id: doc.id,
-        ...storeData,
-        products,
-      } as Store);
-      newLastVisible = doc;
-    }
-
-    return { stores, lastVisible: newLastVisible };
-  } catch (error: any) {
-    console.error(`Error getting paginated stores for category ${categorySlug}:`, error.message);
-    throw error;
+  if (lastVisible) {
+    constraints.push(startAfter(lastVisible));
   }
+
+  const q = query(storesCollection, ...constraints);
+  const snapshot = await getDocs(q);
+
+  const stores: Store[] = [];
+  let newLastVisible: QueryDocumentSnapshot | null = null;
+
+  for (const doc of snapshot.docs) {
+    const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
+    const productsCollection = collection(db, "stores", doc.id, "products");
+    const productsSnapshot = await getDocs(productsCollection);
+    const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, ...productDoc.data() }));
+
+    stores.push({
+      id: doc.id,
+      ...storeData,
+      products,
+    } as Store);
+    newLastVisible = doc;
+  }
+
+  return { stores, lastVisible: newLastVisible };
+ 
 };
 
 export const generateStoreQRImage = async (storeUrl: string): Promise<string> => {

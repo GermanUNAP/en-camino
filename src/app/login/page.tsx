@@ -13,21 +13,15 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await loginWithEmail(email, password);
-      router.push("/"); 
-    } catch (error: any) {
-      setErrorMsg("Correo o contraseña incorrectos");
-    }
+    
+    await loginWithEmail(email, password);
+    router.push("/"); 
+    
   };
 
   const handleGoogleLogin = async () => {
-    try {
-      await loginWithGoogle();
-      router.push("/");
-    } catch (error: any) {
-      setErrorMsg("Error al iniciar sesión con Google");
-    }
+    await loginWithGoogle();
+    router.push("/");
   };
 
   return (
