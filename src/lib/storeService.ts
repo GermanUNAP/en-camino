@@ -15,7 +15,6 @@ import {
   QueryConstraint,
   updateDoc,
   deleteDoc,
-  DocumentData,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';

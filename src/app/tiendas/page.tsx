@@ -13,7 +13,7 @@ interface StoreCardProps {
 }
 
 const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
-  <div className="bg-white rounded-md shadow-md p-4">
+  <div className="bg-white rounded-md shadow-md p-4" key={store.id}> {/* La key debe estar en el elemento raíz */}
     <Link href={`/tienda/${store.id}`} className="block">
       <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
         {store.coverImage ? (
@@ -52,10 +52,15 @@ export default function TiendasPage() {
 
     try {
       const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStores(lastVisible as QueryDocumentSnapshot);
-      setStores((prevStores) => [...prevStores, ...newStores]);
+
+      // Filtrar las nuevas tiendas para evitar duplicados basados en el ID
+      const uniqueNewStores = newStores.filter(newStore =>
+        !stores.some(existingStore => existingStore.id === newStore.id)
+      );
+
+      setStores((prevStores) => [...prevStores, ...uniqueNewStores]);
       setLastVisible(newLastVisible);
 
-      // Si no hay más tiendas, actualizar hasMore a false
       if (newStores.length < 6) {
         setHasMore(false);
       }
@@ -68,7 +73,7 @@ export default function TiendasPage() {
     } finally {
       setLoading(false);
     }
-  }, [hasMore, loading, lastVisible]);
+  }, [hasMore, loading, lastVisible, stores]); // 'stores' también debe estar en las dependencias
 
   useEffect(() => {
     fetchStores();

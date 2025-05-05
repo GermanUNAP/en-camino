@@ -51,7 +51,7 @@ export default function CategoryStoresPage() {
   const [hasMore, setHasMore] = useState(true);
   const [categoryName, setCategoryName] = useState<string | null>(null);
 
-  const fetchStores = async (isInitial = false) => {
+  const fetchStores = useCallback(async (isInitial = false) => {
     if (!slug || (loading || (!hasMore && !isInitial))) return;
 
     try {
@@ -73,21 +73,21 @@ export default function CategoryStoresPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug, loading, hasMore, lastVisible]); // Añadida 'fetchStores' como dependencia
 
   useEffect(() => {
     setStores([]);
     setLastVisible(null);
     setHasMore(true);
     setError(null);
-    fetchStores(true); // Cargar datos iniciales
-  }, [slug]);
+    fetchStores(true);
+  }, [slug, fetchStores]); // Añadida 'fetchStores' como dependencia
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!loading && hasMore) {
       fetchStores(false); // Cargar más
     }
-  };
+  }, [fetchStores, loading, hasMore]);
 
   return (
     <div className="container mx-auto py-10">
