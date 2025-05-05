@@ -106,7 +106,7 @@ export const getStoreById = async (storeId: string): Promise<Store | null> => {
 
 const STORES_PER_PAGE = 6;
 
-export const getPaginatedStores = async (lastVisible?: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
+export const getPaginatedStores = async (lastVisible: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
   try {
     const storesCollection = collection(db, "stores");
     const constraints: QueryConstraint[] = [
