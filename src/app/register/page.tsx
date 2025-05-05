@@ -6,6 +6,7 @@ import { registerUser, loginWithGoogle } from "@/lib/authService";
 import { Button } from "@/components/ui/button";
 import { toast, Toaster } from "sonner";
 import { FcGoogle } from "react-icons/fc";
+import { AuthError } from "firebase/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -35,10 +36,16 @@ export default function RegisterPage() {
       });
       toast.success("Registro exitoso. Redirigiendo al perfil...");
       router.push("/perfil");
-    } catch (error: any) {
-      console.error("Error al registrar:", error.message);
-      setErrorMsg("Error al registrar usuario. Verifica tus datos.");
-      toast.error("Error al registrar usuario. Verifica tus datos.");
+    } catch (error: unknown) {
+      let message = "Error al registrar usuario. Verifica tus datos.";
+      if (error instanceof Error) {
+        console.error("Error al registrar:", error.message);
+        message = `Error al registrar usuario: ${error.message}`;
+      } else {
+        console.error("Error desconocido al registrar:", error);
+      }
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -48,13 +55,19 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     setErrorMsg("");
     try {
-      await loginWithGoogle(); // <--- Cambia aquí
+      await loginWithGoogle();
       toast.success("Registro con Google exitoso. Redirigiendo al perfil...");
       router.push("/perfil");
-    } catch (error: any) {
-      console.error("Error al registrar con Google:", error.message);
-      setErrorMsg("Error al registrar con Google.");
-      toast.error("Error al registrar con Google.");
+    } catch (error: unknown) {
+      let message = "Error al registrar con Google.";
+      if (error instanceof Error) {
+        console.error("Error al registrar con Google:", error.message);
+        message = `Error al registrar con Google: ${error.message}`;
+      } else {
+        console.error("Error desconocido al registrar con Google:", error);
+      }
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +79,6 @@ export default function RegisterPage() {
         <Toaster richColors />
         <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">Crear cuenta</h2>
         <div className="mt-6">
-          
           <Button
             type="button"
             className="w-full mt-4 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white"
@@ -152,7 +164,6 @@ export default function RegisterPage() {
             {isSubmitting ? "Registrando..." : "Registrarse"}
           </Button>
         </form>
-
       </div>
     </div>
   );

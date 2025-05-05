@@ -18,6 +18,15 @@ interface UserProfileData {
   email?: string | null;
 }
 
+interface InputFieldProps {
+  label: string;
+  value: string | number | readonly string[] | undefined;
+  onChange: (newValue: string) => void;
+  key: string;
+  type?: React.HTMLInputTypeAttribute;
+  inputMode?: "email" | "search" | "tel" | "text" | "url" | "numeric" | "none" | "decimal" | undefined;
+}
+
 export default function PerfilPage() {
   const [user, setUser] = useState<User | null>(null);
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
@@ -188,7 +197,7 @@ export default function PerfilPage() {
     </div>
   );
 
-  const inputField = ({ label, value, onChange, key, type, inputMode }: any) => (
+  const inputField = ({ label, value, onChange, key, type, inputMode }: InputFieldProps) => (
     <div key={key}>
       <label className="text-sm font-medium text-gray-700">{label}</label>
       <input
@@ -270,7 +279,7 @@ export default function PerfilPage() {
         ) : (
           <>
             {inputField({ label: "Nombre", value: displayName, onChange: setDisplayName, key: "displayName", type: "text" })}
-            {inputField({ label: "Teléfono", value: telefono, onChange: (v: string) => setTelefono(v.replace(/\D/g, "")), key: "telefono", type: "text", inputMode: "numeric" as const })}
+            {inputField({ label: "Teléfono", value: telefono, onChange: (v: string) => setTelefono(v.replace(/\D/g, "")), key: "telefono", type: "text", inputMode: "numeric" })}
             {inputField({ label: "Dirección", value: direccion, onChange: setDireccion, key: "direccion", type: "text" })}
             {inputField({ label: "Fecha de Nacimiento", value: fechaNacimiento, onChange: setFechaNacimiento, key: "fechaNacimiento", type: "date" })}
             <div>
