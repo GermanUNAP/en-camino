@@ -86,17 +86,22 @@ export default function StoreViewPage() {
         } else {
           setError("Tienda no encontrada.");
         }
-      } catch (e: any) {
-        setError(`Error al cargar la tienda: ${e.message}`);
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          setError(`Error al cargar la tienda: ${e.message}`);
+        } else {
+          setError("Error desconocido al cargar la tienda.");
+        }
       } finally {
         setLoadingStore(false);
       }
     };
-
+  
     if (storeId) {
       fetchStore();
     }
   }, [storeId]);
+  
 
   const handleWhatsAppClick = () => {
     if (store?.phone) {

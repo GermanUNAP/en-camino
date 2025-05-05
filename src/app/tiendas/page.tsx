@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { QueryDocumentSnapshot } from "firebase/firestore";
 
 interface StoreCardProps {
   store: Store;
@@ -55,11 +55,16 @@ export default function TiendasPage() {
       setStores((prevStores) => [...prevStores, ...newStores]);
       setLastVisible(newLastVisible);
 
+      // Si no hay más tiendas, actualizar hasMore a false
       if (newStores.length < 6) {
         setHasMore(false);
       }
-    } catch (e: any) {
-      setError(`Error al cargar las tiendas: ${e.message}`);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(`Error al cargar las tiendas: ${e.message}`);
+      } else {
+        setError("Error desconocido al cargar las tiendas.");
+      }
     } finally {
       setLoading(false);
     }

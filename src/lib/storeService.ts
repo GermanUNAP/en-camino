@@ -1,5 +1,5 @@
 import { db, storage } from "@/lib/firebase";
-import { doc, setDoc, collection, addDoc, getDoc, serverTimestamp, getDocs, query, limit, startAfter, where, QueryDocumentSnapshot, QueryConstraint, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc, getDoc, serverTimestamp, getDocs, query, limit, startAfter, where, QueryDocumentSnapshot, QueryConstraint, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { jsPDF } from "jspdf";
@@ -13,7 +13,7 @@ interface StoreData {
   phone?: string;
   category: string;
   coverImage?: string;
-  socialMedia?: { platform: string; link: string }[]; 
+  socialMedia?: { platform: string; link: string }[];
 }
 
 interface ProductData {
@@ -22,7 +22,7 @@ interface ProductData {
   description?: string;
   price: number;
   images: string[];
-  isFeatured?: boolean; 
+  isFeatured?: boolean;
 }
 export interface Store {
   id: string;
@@ -42,8 +42,8 @@ export const uploadStoreCoverImage = async (file: File, storeId: string): Promis
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
-  } catch (error: any) {
-    console.error("Error uploading store cover image:", error.message);
+  } catch (error: unknown) {
+    console.error("Error uploading store cover image:", error);
     return null;
   }
 };
@@ -58,8 +58,8 @@ export const createStore = async (storeData: StoreData) => {
       createdAt: serverTimestamp(),
     });
     return storeId;
-  } catch (error: any) {
-    console.error("Error creating store:", error.message);
+  } catch (error: unknown) {
+    console.error("Error creating store:", error);
     throw error;
   }
 };
@@ -72,8 +72,8 @@ export const addProductToStore = async (productData: ProductData) => {
       createdAt: serverTimestamp(),
     });
     return docRef.id;
-  } catch (error: any) {
-    console.error("Error adding product to store:", error.message);
+  } catch (error: unknown) {
+    console.error("Error adding product to store:", error);
     throw error;
   }
 };
@@ -98,15 +98,15 @@ export const getStoreById = async (storeId: string): Promise<Store | null> => {
       console.log("No such document!");
       return null;
     }
-  } catch (error: any) {
-    console.error("Error getting store by ID:", error.message);
+  } catch (error: unknown) {
+    console.error("Error getting store by ID:", error);
     throw error;
   }
 };
 
 const STORES_PER_PAGE = 6;
 
-export const getPaginatedStores = async (lastVisible: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
+export const getPaginatedStores = async (lastVisible: QueryDocumentSnapshot | null): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
   try {
     const storesCollection = collection(db, "stores");
     const constraints: QueryConstraint[] = [
@@ -138,8 +138,8 @@ export const getPaginatedStores = async (lastVisible: QueryDocumentSnapshot): Pr
     }
 
     return { stores, lastVisible: newLastVisible };
-  } catch (error: any) {
-    console.error("Error getting paginated stores:", error.message);
+  } catch (error: unknown) {
+    console.error("Error getting paginated stores:", error);
     throw error;
   }
 };
@@ -151,13 +151,13 @@ export const getStoresByCategory = async (categorySlug: string): Promise<Store[]
     const snapshot = await getDocs(q);
     const stores: Store[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Store));
     return stores;
-  } catch (error: any) {
-    console.error(`Error getting stores by category ${categorySlug}:`, error.message);
+  } catch (error: unknown) {
+    console.error(`Error getting stores by category ${categorySlug}:`, error);
     throw error;
   }
 };
 
-export const getPaginatedStoresByCategory = async (categorySlug: string, lastVisible: QueryDocumentSnapshot): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
+export const getPaginatedStoresByCategory = async (categorySlug: string, lastVisible: QueryDocumentSnapshot | null): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
 
   const storesCollection = collection(db, "stores");
   const constraints: QueryConstraint[] = [
@@ -190,7 +190,7 @@ export const getPaginatedStoresByCategory = async (categorySlug: string, lastVis
   }
 
   return { stores, lastVisible: newLastVisible };
- 
+
 };
 
 export const generateStoreQRImage = async (storeUrl: string): Promise<string> => {
@@ -201,8 +201,8 @@ export const generateStoreQRImage = async (storeUrl: string): Promise<string> =>
       margin: 2,
     });
     return qrDataUrl;
-  } catch (error: any) {
-    console.error("Error generating QR image:", error.message);
+  } catch (error: unknown) {
+    console.error("Error generating QR image:", error);
     throw error;
   }
 };
@@ -241,7 +241,7 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
         const logoX = (halfWidth - logoWidth) / 2;
         const logoY = (pageHeight - logoHeight) / 2;
         pdf.addImage(logoBase64, 'JPEG', logoX, logoY, logoWidth, logoHeight);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error al convertir el logo a base64:", error);
       }
     }
@@ -252,7 +252,7 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
     try {
       const qrDataUrl = await QRCode.toDataURL(storeUrl, { width: 1024, margin: 2 });
       pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error generando el QR:", err);
       throw err;
     }
@@ -310,8 +310,8 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
 
     const pdfBlob = pdf.output('blob');
     return pdfBlob;
-  } catch (error: any) {
-    console.error("Error generating QR PDF:", error.message);
+  } catch (error: unknown) {
+    console.error("Error generating QR PDF:", error);
     throw error;
   }
 };
@@ -323,8 +323,8 @@ export const uploadProductImage = async (file: File, storeId: string): Promise<s
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
-  } catch (error: any) {
-    console.error("Error uploading product image:", error.message);
+  } catch (error: unknown) {
+    console.error("Error uploading product image:", error);
     return null;
   }
 };
@@ -337,8 +337,8 @@ export const updateStore = async (storeId: string, storeData: Partial<StoreData>
       updatedAt: serverTimestamp(),
     });
     return true;
-  } catch (error: any) {
-    console.error("Error updating store:", error.message);
+  } catch (error: unknown) {
+    console.error("Error updating store:", error);
     throw error;
   }
 };
@@ -357,8 +357,8 @@ export const deleteProduct = async (storeId: string, productId: string) => {
             const imageRef = ref(storage, imageUrl);
             await deleteObject(imageRef);
             console.log(`Deleted image: ${imageUrl}`);
-          } catch (storageError: any) {
-            console.error(`Error deleting image ${imageUrl}:`, storageError.message);
+          } catch (storageError: unknown) {
+            console.error(`Error deleting image ${imageUrl}:`, storageError);
             // Optionally continue even if some deletions fail
           }
         })
@@ -367,8 +367,8 @@ export const deleteProduct = async (storeId: string, productId: string) => {
 
     await deleteDoc(productRef);
     return true;
-  } catch (error: any) {
-    console.error("Error deleting product:", error.message);
+  } catch (error: unknown) {
+    console.error("Error deleting product:", error);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-// ./lib/productService.ts
+// ./src/lib/productoService.ts
 import { db } from "./firebase";
 import {
   doc,
@@ -8,10 +8,9 @@ import {
   where,
   getDocs,
   updateDoc,
-  addDoc,
   deleteDoc,
   orderBy,
-  limit as firestoreLimit,
+  Timestamp,
 } from "firebase/firestore";
 
 export interface Product {
@@ -21,8 +20,7 @@ export interface Product {
   price: number | null | undefined;
   images: string[];
   storeId: string;
-  createdAt?: any; // Para almacenar la fecha de creación (Firebase Timestamp)
-  // Puedes añadir más propiedades según sea necesario
+  createdAt?: Timestamp; 
 }
 
 export const getProductById = async (
@@ -41,10 +39,10 @@ export const getProductById = async (
       );
       return null;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al obtener el producto con ID ${productId} en la tienda ${storeId}:`,
-      error.message
+      error
     );
     throw error;
   }
@@ -65,10 +63,10 @@ export const getRelatedProducts = async (
     });
 
     return products.slice(0, limit);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al obtener productos relacionados para la tienda ${storeId}:`,
-      error.message
+      error
     );
     throw error;
   }
@@ -85,10 +83,10 @@ export const updateProduct = async (
     console.log(
       `Producto con ID ${productId} en la tienda ${storeId} actualizado exitosamente.`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al actualizar el producto con ID ${productId} en la tienda ${storeId}:`,
-      error.message
+      error
     );
     throw error;
   }
@@ -104,10 +102,10 @@ export const deleteProduct = async (
     console.log(
       `Producto con ID ${productId} eliminado exitosamente de la tienda ${storeId}.`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al eliminar el producto con ID ${productId} de la tienda ${storeId}:`,
-      error.message
+      error
     );
     throw error;
   }
@@ -124,10 +122,10 @@ export const getAllProductsByStore = async (
       products.push({ id: doc.id, ...doc.data() } as Product);
     });
     return products;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al obtener todos los productos de la tienda ${storeId}:`,
-      error.message
+      error
     );
     throw error;
   }
@@ -155,7 +153,7 @@ async function getLatestProductsFromFirebase(limit = 8): Promise<Product[]> {
     });
 
     return allProducts.slice(0, limit);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error al obtener los últimos productos:", error);
     return [];
   }
