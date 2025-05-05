@@ -1,5 +1,22 @@
 import { db, storage } from "@/lib/firebase";
-import { doc, setDoc, collection, addDoc, getDoc, serverTimestamp, getDocs, query, limit, startAfter, where, QueryDocumentSnapshot, QueryConstraint, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  addDoc,
+  getDoc,
+  serverTimestamp,
+  getDocs,
+  query,
+  limit,
+  startAfter,
+  where,
+  QueryDocumentSnapshot,
+  QueryConstraint,
+  updateDoc,
+  deleteDoc,
+  DocumentData,
+} from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { jsPDF } from "jspdf";
@@ -16,14 +33,27 @@ interface StoreData {
   socialMedia?: { platform: string; link: string }[];
 }
 
-interface ProductData {
-  storeId: string;
+interface ProductDataBase {
   name: string;
   description?: string;
   price: number;
   images: string[];
   isFeatured?: boolean;
 }
+
+interface ProductData extends ProductDataBase {
+  storeId: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  images: string[]; 
+}
+
 export interface Store {
   id: string;
   userId: string;
@@ -31,9 +61,15 @@ export interface Store {
   category: string;
   description?: string;
   address?: string;
-  phone?: string; // Sin null
+  phone?: string;
   coverImage?: string;
-  products?: any[];
+  products?: Product[]; // Include id in the product type within Store
+  socialMedia?: SocialMediaLink[];
+}
+
+export interface SocialMediaLink {
+  platform: string;
+  link: string;
 }
 
 export const uploadStoreCoverImage = async (file: File, storeId: string): Promise<string | null> => {
@@ -48,13 +84,12 @@ export const uploadStoreCoverImage = async (file: File, storeId: string): Promis
   }
 };
 
-export const createStore = async (storeData: StoreData) => {
+export const createStore = async (storeData: StoreData): Promise<string> => {
   try {
     const storeId = uuidv4();
     const storeRef = doc(db, "stores", storeId);
     await setDoc(storeRef, {
       ...storeData,
-      storeId,
       createdAt: serverTimestamp(),
     });
     return storeId;
@@ -64,9 +99,9 @@ export const createStore = async (storeData: StoreData) => {
   }
 };
 
-export const addProductToStore = async (productData: ProductData) => {
+export const addProductToStore = async (productData: Omit<ProductData, 'storeId'>, storeId: string): Promise<string> => {
   try {
-    const productsCollection = collection(db, "stores", productData.storeId, "products");
+    const productsCollection = collection(db, "stores", storeId, "products");
     const docRef = await addDoc(productsCollection, {
       ...productData,
       createdAt: serverTimestamp(),
@@ -87,7 +122,7 @@ export const getStoreById = async (storeId: string): Promise<Store | null> => {
       const storeData = storeSnap.data() as Omit<Store, 'id' | 'products'>;
       const productsCollection = collection(db, "stores", storeId, "products");
       const productsSnap = await getDocs(productsCollection);
-      const products = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const products = productsSnap.docs.map(doc => ({ id: doc.id, storeId: storeId, ...doc.data() } as ProductData & { id: string }));
 
       return {
         id: storeSnap.id,
@@ -127,7 +162,7 @@ export const getPaginatedStores = async (lastVisible: QueryDocumentSnapshot | nu
       const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
       const productsCollection = collection(db, "stores", doc.id, "products");
       const productsSnapshot = await getDocs(productsCollection);
-      const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, ...productDoc.data() }));
+      const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, storeId: doc.id, ...productDoc.data() } as ProductData & { id: string }));
 
       stores.push({
         id: doc.id,
@@ -158,39 +193,42 @@ export const getStoresByCategory = async (categorySlug: string): Promise<Store[]
 };
 
 export const getPaginatedStoresByCategory = async (categorySlug: string, lastVisible: QueryDocumentSnapshot | null): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
+  try {
+    const storesCollection = collection(db, "stores");
+    const constraints: QueryConstraint[] = [
+      where("category", "==", categorySlug),
+      limit(STORES_PER_PAGE),
+    ];
 
-  const storesCollection = collection(db, "stores");
-  const constraints: QueryConstraint[] = [
-    where("category", "==", categorySlug),
-    limit(STORES_PER_PAGE),
-  ];
+    if (lastVisible) {
+      constraints.push(startAfter(lastVisible));
+    }
 
-  if (lastVisible) {
-    constraints.push(startAfter(lastVisible));
+    const q = query(storesCollection, ...constraints);
+    const snapshot = await getDocs(q);
+
+    const stores: Store[] = [];
+    let newLastVisible: QueryDocumentSnapshot | null = null;
+
+    for (const doc of snapshot.docs) {
+      const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
+      const productsCollection = collection(db, "stores", doc.id, "products");
+      const productsSnapshot = await getDocs(productsCollection);
+      const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, storeId: doc.id, ...productDoc.data() } as ProductData & { id: string }));
+
+      stores.push({
+        id: doc.id,
+        ...storeData,
+        products,
+      } as Store);
+      newLastVisible = doc;
+    }
+
+    return { stores, lastVisible: newLastVisible };
+  } catch (error: unknown) {
+    console.error(`Error getting paginated stores by category ${categorySlug}:`, error);
+    throw error;
   }
-
-  const q = query(storesCollection, ...constraints);
-  const snapshot = await getDocs(q);
-
-  const stores: Store[] = [];
-  let newLastVisible: QueryDocumentSnapshot | null = null;
-
-  for (const doc of snapshot.docs) {
-    const storeData = doc.data() as Omit<Store, 'id' | 'products'>;
-    const productsCollection = collection(db, "stores", doc.id, "products");
-    const productsSnapshot = await getDocs(productsCollection);
-    const products = productsSnapshot.docs.map(productDoc => ({ id: productDoc.id, ...productDoc.data() }));
-
-    stores.push({
-      id: doc.id,
-      ...storeData,
-      products,
-    } as Store);
-    newLastVisible = doc;
-  }
-
-  return { stores, lastVisible: newLastVisible };
-
 };
 
 export const generateStoreQRImage = async (storeUrl: string): Promise<string> => {
@@ -234,6 +272,9 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
 
     let logoHeight = 88;
     let logoWidth = 88;
+    //se vuelve a reasignar las variables por problemas de typesccript  
+    logoHeight = 88;
+    logoWidth = 88;
     if (logoUrl) {
       try {
         const logoBase64 = await fetchImageAsBase64(logoUrl);
@@ -329,7 +370,7 @@ export const uploadProductImage = async (file: File, storeId: string): Promise<s
   }
 };
 
-export const updateStore = async (storeId: string, storeData: Partial<StoreData>) => {
+export const updateStore = async (storeId: string, storeData: Partial<StoreData>): Promise<boolean> => {
   try {
     const storeRef = doc(db, "stores", storeId);
     await updateDoc(storeRef, {
@@ -343,7 +384,7 @@ export const updateStore = async (storeId: string, storeData: Partial<StoreData>
   }
 };
 
-export const deleteProduct = async (storeId: string, productId: string) => {
+export const deleteProduct = async (storeId: string, productId: string): Promise<boolean> => {
   try {
     const productRef = doc(db, "stores", storeId, "products", productId);
     const productSnap = await getDoc(productRef);
