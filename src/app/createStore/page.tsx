@@ -12,12 +12,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
 
-interface ProductFormData {
-  name: string;
-  description?: string;
-  price: number;
-  images: File[];
-}
 
 interface SocialMedia {
   platform: string;

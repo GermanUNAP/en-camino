@@ -59,15 +59,24 @@ export default function CategoryStoresPage() {
 
       setLoading(true);
       setError(null);
-      
-      const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStoresByCategory(
-        slug,
-        lastDoc as QueryDocumentSnapshot // Explicitly cast to QueryDocumentSnapshot
-      );
-      setStores((prevStores) => [...prevStores, ...newStores]);
-      setLastVisible(newLastVisible);
-      setHasMore(newStores.length === 6);
-      
+
+      try {
+        const { stores: newStores, lastVisible: newLastVisible } = await getPaginatedStoresByCategory(
+          slug,
+          lastDoc as QueryDocumentSnapshot 
+        );
+        setStores((prevStores) => [...prevStores, ...newStores]);
+        setLastVisible(newLastVisible);
+        setHasMore(newStores.length === 6);
+      } catch (e: unknown) {
+        let errorMessage = "Ocurrió un error al cargar las tiendas.";
+        if (e instanceof Error) {
+          errorMessage = e.message;
+        }
+        setError(errorMessage);
+      } finally {
+        setLoading(false); 
+      }
 
       if (isInitialLoad.current) {
         const category = STORE_CATEGORIES.find((cat) => cat.slug === slug);

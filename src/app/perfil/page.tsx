@@ -92,8 +92,12 @@ export default function PerfilPage() {
         setFechaNacimiento(typedProfileData.fechaNacimiento);
         setGenero(typedProfileData.genero);
       }
-    } catch (error: any) {
-      console.error("Error al cargar el perfil desde Firestore:", error.message);
+    } catch (error: unknown) {
+      let errorMessage = "Error al cargar el perfil desde Firestore:";
+      if (error instanceof Error) {
+        errorMessage += " " + error.message;
+      }
+      console.error(errorMessage, error);
       toast.error("Error al cargar la información del perfil.");
     } finally {
       setIsLoading(false);
@@ -159,9 +163,13 @@ export default function PerfilPage() {
       if (user) {
         await loadUserProfile(user);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = "Error al actualizar el perfil:";
+      if (error instanceof Error) {
+        errorMessage += " " + error.message;
+      }
       toast.error("Error al actualizar el perfil.", { id: toastId });
-      console.error("Error al actualizar el perfil:", error.message);
+      console.error(errorMessage, error);
     } finally {
       setIsSaving(false);
     }
