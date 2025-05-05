@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { getStoreById, generateStoreQRImage, generateStoreQRPDF } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { ProductCard } from "../../../../components/product-card";
+import { ProductCard } from "../../../../components/product-card"; 
 import { Loader2 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
@@ -18,6 +18,16 @@ export interface SocialMediaLink {
   link: string;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  images: string[]; // Add the 'images' property as it's required by ProductCard
+  // Add other product properties as needed to match your data
+}
+
 export interface Store {
   id: string;
   userId: string;
@@ -27,8 +37,8 @@ export interface Store {
   address?: string;
   phone?: string;
   coverImage?: string;
-  products?: any[];
-  socialMedia?: SocialMediaLink[]; // Asegúrate de que tu tipo Store incluya esto
+  products?: Product[];
+  socialMedia?: SocialMediaLink[];
 }
 
 // Mapeo de plataformas a colores
