@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
-import { useRef } from 'react';
 import { useParams } from 'next/navigation';
 import {
   getProductById as fetchProductData,
   getRelatedProducts as fetchRelatedProducts,
-} from '@/lib/productoService'; // Asegúrate de que la ruta sea correcta
-import { Loader2 } from "lucide-react"; // Importa un icono de carga
+} from '@/lib/productoService'; 
+import { Loader2 } from "lucide-react"; 
 
 interface Product {
   id?: string;
@@ -50,8 +49,12 @@ const ProductDetailPage = () => {
           } else {
             setError('Producto no encontrado.');
           }
-        } catch (e: any) {
-          setError('Error al cargar el producto.');
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            setError(`Error al cargar el producto: ${error.message}`);
+          } else {
+            setError('Error desconocido al cargar el producto.');
+          }
         } finally {
           setLoading(false);
         }
@@ -63,9 +66,10 @@ const ProductDetailPage = () => {
         setLoading(false);
       }
     };
-
+  
     loadProductDetails();
   }, [productId, storeId]);
+  
 
   const next = () => {
     if (product?.images && carouselRef.current) {
@@ -104,6 +108,7 @@ const ProductDetailPage = () => {
   if (!product) {
     return <div>Producto no encontrado.</div>;
   }
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

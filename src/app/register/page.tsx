@@ -6,7 +6,6 @@ import { registerUser, loginWithGoogle } from "@/lib/authService";
 import { Button } from "@/components/ui/button";
 import { toast, Toaster } from "sonner";
 import { FcGoogle } from "react-icons/fc";
-import { AuthError } from "firebase/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
