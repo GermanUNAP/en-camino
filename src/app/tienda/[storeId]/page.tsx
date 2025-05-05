@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, ComponentType } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { getStoreById, generateStoreQRImage, generateStoreQRPDF } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";

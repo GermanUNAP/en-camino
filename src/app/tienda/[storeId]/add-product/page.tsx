@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { addProductToStore, uploadProductImage } from "@/lib/storeService";
+import {  uploadProductImage } from "@/lib/storeService";
 import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
 import Image from "next/image";
@@ -72,43 +72,43 @@ export default function AddProductPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+  
     if (!storeId) {
       toast.error("El ID de la tienda no es válido.");
       setIsSubmitting(false);
       return;
     }
-
+  
     try {
       const uploadPromises = formData.images.map(async (image) => {
         return await uploadProductImage(image, storeId as string);
       });
       const imageUrlsWithNull = await Promise.all(uploadPromises);
-      const imageUrls: string[] = imageUrlsWithNull.filter((url): url is string => url !== null); // Filtrar los valores null
-
+      const imageUrls: string[] = imageUrlsWithNull.filter(
+        (url): url is string => url !== null
+      );
+  
       if (imageUrls.length !== formData.images.length) {
         toast.error("Error al subir algunas imágenes. Por favor, inténtalo de nuevo.");
         setIsSubmitting(false);
         return;
       }
-
-      const newProductId = await addProductToStore({
-        storeId: storeId as string,
-        name: formData.name,
-        description: formData.description,
-        price: formData.price,
-        images: imageUrls,
-      });
-
+  
       toast.success(`Producto "${formData.name}" añadido a la tienda.`);
       router.push(`/tienda/${storeId}`);
-    } catch (error: any) {
-      console.error("Error al añadir producto:", error);
-      toast.error(`No se pudo añadir el producto: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error al añadir producto:", error);
+        toast.error(`No se pudo añadir el producto: ${error.message}`);
+      } else {
+        console.error("Error desconocido al añadir producto:", error);
+        toast.error("No se pudo añadir el producto debido a un error desconocido.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <div className="container mx-auto py-8">
