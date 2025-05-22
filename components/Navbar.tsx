@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, LogIn, LogOut, Search, Store, User as UserIcon, UserPlus, ShoppingBag, Landmark } from "lucide-react"; // Added ShoppingBag and Landmark icons
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,28 +15,89 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { usePathname } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation"; // Added useSearchParams
+import ComboBoxCiudad from "./CityCombobox";
+import { City } from "@/types/city";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAuthorized = user?.email === "german@team.nspsac.com" || user?.email === "carlosmerma99@gmail.com";
-  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams(); // Hook to access URL search parameters
 
-  const navbarCategories = STORE_CATEGORIES.map((cat) => ({
-    label: cat.name,
-    href: `/categorias/${cat.slug}`,
-  }));
+  const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [storeSearchTerm, setStoreSearchTerm] = useState<string>(""); // New state for store search
+  const [productSearchTerm, setProductSearchTerm] = useState<string>(""); // New state for product search
+
+  const isAuthorized =
+    user?.email === "german@team.nspsac.com" ||
+    user?.email === "carlosmerma99@gmail.com";
 
   useEffect(() => {
     const auth = getAuth(app);
-    return onAuthStateChanged(auth, (currentUser) => setUser(currentUser));
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+
+    // Initialize state from URL params on component mount
+    const queryCity = searchParams.get("ciudad");
+    const queryCategory = searchParams.get("categoria");
+    const queryStore = searchParams.get("tienda"); // New param for store search
+    const queryProduct = searchParams.get("producto"); // New param for product search
+
+    if (queryCity) {
+      // You might need to fetch the full city object based on the slug here
+      // For now, we'll just set a partial object if the ComboBoxCiudad can handle it
+      setSelectedCity({ slug: queryCity, name: queryCity } as City); // Assuming City type can handle this
+    }
+    if (queryCategory) {
+      setSelectedCategory(queryCategory);
+    }
+    if (queryStore) {
+      setStoreSearchTerm(queryStore);
+    }
+    if (queryProduct) {
+      setProductSearchTerm(queryProduct);
+    }
+
+    return () => unsubscribe();
+  }, [searchParams]); // Depend on searchParams to re-run when URL changes
 
   const handleLogout = () => {
     const auth = getAuth(app);
     signOut(auth);
   };
+
+  const handleCitySelect = (city: City | null) => {
+    setSelectedCity(city);
+  };
+
+  const handleCategorySelect = (categorySlug: string) => {
+    setSelectedCategory(categorySlug);
+  };
+
+  const handleStoreSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setStoreSearchTerm(event.target.value);
+  };
+
+  const handleProductSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProductSearchTerm(event.target.value);
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const queryParams = new URLSearchParams();
+
+    if (storeSearchTerm.trim()) queryParams.set("tienda", storeSearchTerm);
+    if (productSearchTerm.trim()) queryParams.set("producto", productSearchTerm);
+
+    if (selectedCategory) queryParams.set("categoria", selectedCategory);
+    if (selectedCity?.slug) queryParams.set("ciudad", selectedCity.slug);
+
+    const queryString = queryParams.toString();
+    router.push(`/resultados${queryString ? `?${queryString}` : ""}`);
+  };
+
 
   return (
     <nav className="w-full px-6 py-2 bg-background shadow-md sticky top-0 z-50">
@@ -55,35 +116,70 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Botón para menú en móviles */}
+        {/* Botón menú móvil */}
         <button className="md:hidden text-muted-foreground" onClick={() => setMenuOpen(!menuOpen)}>
           <Menu size={28} />
         </button>
 
-        {/* Navegación en escritorio */}
+        {/* Navegación escritorio */}
         <div className="hidden md:flex flex-wrap items-center justify-end gap-4">
-          {navbarCategories.map((cat) => (
-            <Link href={cat.href} key={cat.label}>
-              <Button
-                variant="ghost"
-                className={`text-primary hover:text-primary/80 font-semibold ${
-                  pathname === cat.href ? "underline text-primary/90" : ""
-                }`}
-              >
-                {cat.label}
-              </Button>
-            </Link>
-          ))}
+          {/* Barra de búsqueda para Tiendas */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center relative">
+            <Landmark className="absolute left-3 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar tiendas..."
+              className="border rounded-md pl-10 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              value={storeSearchTerm}
+              onChange={handleStoreSearchChange}
+            />
+          </form>
+          {/* Barra de búsqueda para Productos */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center relative">
+            <ShoppingBag className="absolute left-3 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar productos..."
+              className="border rounded-md pl-10 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              value={productSearchTerm}
+              onChange={handleProductSearchChange}
+            />
+          </form>
+          <div className="mr-4">
+            <ComboBoxCiudad onSeleccionarCiudad={handleCitySelect} selectedCity={selectedCity} />
+          </div>
+          {/* Selector de categorías */}
+          <div className="w-52">
+            <Select onValueChange={handleCategorySelect} value={selectedCategory}>
+              <SelectTrigger className="w-full">
+                <Store className="mr-2 h-4 w-4 text-gray-400" /> {/* Icono en el trigger */}
+                <SelectValue placeholder="Seleccionar categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {STORE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="submit" onClick={handleSearchSubmit} className="ml-2 font-semibold gap-1">
+            <Search size={16} />
+            Buscar
+          </Button>
 
           {!user ? (
             <>
               <Link href="/login">
-                <Button className="bg-primary text-white hover:bg-primary/90 font-semibold">
+                <Button className="bg-primary text-white hover:bg-primary/90 font-semibold gap-1">
+                  <LogIn size={16} />
                   Iniciar sesión
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="outline" className="text-primary border-primary hover:text-primary/80 font-semibold">
+                <Button variant="outline" className="text-primary border-primary hover:text-primary/80 font-semibold gap-1">
+                  <UserPlus size={16} />
                   Registrarse
                 </Button>
               </Link>
@@ -103,18 +199,24 @@ export default function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <Link href="/perfil">
-                  <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80">
+                  <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80 gap-2">
+                    <UserIcon size={16} />
                     Ver perfil
                   </DropdownMenuItem>
                 </Link>
                 {isAuthorized && (
                   <Link href="/createStore">
-                    <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80">
+                    <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80 gap-2">
+                      <Store size={16} />
                       Crear tienda
                     </DropdownMenuItem>
                   </Link>
                 )}
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive hover:text-destructive/80 font-semibold">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive hover:text-destructive/80 font-semibold gap-2"
+                >
+                  <LogOut size={16} />
                   Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -123,30 +225,63 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Navegación para móviles */}
+      {/* Navegación móvil */}
       {menuOpen && (
         <div className="mt-4 flex flex-col md:hidden gap-2">
-          {navbarCategories.map((cat) => (
-            <Link href={cat.href} key={cat.label}>
-              <Button
-                variant="ghost"
-                className={`text-primary hover:text-primary/80 font-semibold ${
-                  pathname === cat.href ? "underline text-primary/90" : ""
-                }`}
-              >
-                {cat.label}
-              </Button>
-            </Link>
-          ))}
+          <form onSubmit={handleSearchSubmit} className="flex items-center mb-2 relative">
+            <Landmark className="absolute left-3 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar tiendas..."
+              className="border rounded-md pl-10 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+              value={storeSearchTerm}
+              onChange={handleStoreSearchChange}
+            />
+          </form>
+          <form onSubmit={handleSearchSubmit} className="flex items-center mb-2 relative">
+            <ShoppingBag className="absolute left-3 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar productos..."
+              className="border rounded-md pl-10 pr-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary w-full"
+              value={productSearchTerm}
+              onChange={handleProductSearchChange}
+            />
+          </form>
+          <Button type="submit" onClick={handleSearchSubmit} className="ml-2 font-semibold gap-1 w-full">
+            <Search size={16} />
+            Buscar
+          </Button>
+          <div className="mb-2">
+            <ComboBoxCiudad onSeleccionarCiudad={handleCitySelect} selectedCity={selectedCity} />
+          </div>
+          <div className="mb-2">
+            <Select onValueChange={handleCategorySelect} value={selectedCategory}>
+              <SelectTrigger>
+                <Store className="mr-2 h-4 w-4 text-gray-400" />
+                <SelectValue placeholder="Seleccionar categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {STORE_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.slug} value={cat.slug}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {!user ? (
             <>
               <Link href="/login">
-                <Button className="bg-primary text-white hover:bg-primary/90 font-semibold">
+                <Button className="bg-primary text-white hover:bg-primary/90 font-semibold w-full gap-1">
+                  <LogIn size={16} />
                   Iniciar sesión
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="outline" className="text-primary border-primary hover:text-primary/80 font-semibold">
+                <Button variant="outline" className="text-primary border-primary hover:text-primary/80 font-semibold w-full gap-1">
+                  <UserPlus size={16} />
                   Registrarse
                 </Button>
               </Link>
@@ -154,18 +289,21 @@ export default function Navbar() {
           ) : (
             <div className="flex flex-col gap-2">
               <Link href="/perfil">
-                <Button className="text-foreground font-semibold hover:opacity-80">
+                <Button className="text-foreground font-semibold hover:opacity-80 w-full gap-1">
+                  <UserIcon size={16} />
                   Ver perfil
                 </Button>
               </Link>
               {isAuthorized && (
                 <Link href="/createStore">
-                  <Button className="text-foreground font-semibold hover:opacity-80">
+                  <Button className="text-foreground font-semibold hover:opacity-80 w-full gap-1">
+                    <Store size={16} />
                     Crear tienda
                   </Button>
                 </Link>
               )}
-              <Button variant="outline" onClick={handleLogout} className="text-destructive hover:text-destructive/80 font-semibold">
+              <Button variant="outline" onClick={handleLogout} className="text-destructive hover:text-destructive/80 font-semibold w-full gap-1">
+                <LogOut size={16} />
                 Cerrar sesión
               </Button>
             </div>

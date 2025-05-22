@@ -15,6 +15,7 @@ import {
   QueryConstraint,
   updateDoc,
   deleteDoc,
+  orderBy,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
@@ -27,6 +28,7 @@ interface StoreData {
   description?: string;
   address: string;
   phone?: string;
+  city?: string;
   category: string;
   coverImage?: string;
   socialMedia?: { platform: string; link: string }[];
@@ -59,6 +61,7 @@ export interface Store {
   name: string;
   category: string;
   description?: string;
+  city?: string;
   address?: string;
   phone?: string;
   coverImage?: string;
@@ -411,6 +414,93 @@ export const deleteProduct = async (storeId: string, productId: string): Promise
     return true;
   } catch (error: unknown) {
     console.error("Error deleting product:", error);
+    throw error;
+  }
+};
+
+export const getPaginatedStoresByCriteria = async (
+  storeSearchTerm?: string,
+  productSearchTerm?: string,
+  categorySlug?: string,
+  citySlug?: string,
+  lastVisible?: QueryDocumentSnapshot | null
+): Promise<{ stores: Store[]; lastVisible: QueryDocumentSnapshot | null }> => {
+  try {
+    const storesCollection = collection(db, "stores");
+
+    const baseConstraints: QueryConstraint[] = [
+      orderBy("createdAt", "desc"),
+      limit(STORES_PER_PAGE),
+    ];
+
+    if (lastVisible) {
+      baseConstraints.push(startAfter(lastVisible));
+    }
+
+    const filterConstraints: QueryConstraint[] = [];
+
+    if (categorySlug) {
+      filterConstraints.push(where("category", "==", categorySlug));
+    }
+
+    if (citySlug && citySlug.trim() !== "") {
+      const cityFilter = citySlug.toLowerCase();
+
+      filterConstraints.push(where("city", "==", cityFilter));
+    }
+
+    const q = query(storesCollection, ...filterConstraints, ...baseConstraints);
+
+    const snapshot = await getDocs(q);
+
+    let newLastVisible: QueryDocumentSnapshot | null = null;
+    const matchingStores: Store[] = [];
+
+    for (const doc of snapshot.docs) {
+      const storeData = doc.data() as Omit<Store, "id" | "products">;
+
+      const productsCollection = collection(db, "stores", doc.id, "products");
+      const productsSnapshot = await getDocs(productsCollection);
+      const products = productsSnapshot.docs.map(productDoc => ({
+        id: productDoc.id,
+        storeId: doc.id,
+        ...productDoc.data(),
+      } as ProductData & { id: string }));
+
+      const store: Store = {
+        id: doc.id,
+        ...storeData,
+        products,
+        city: storeData.city ?? undefined,
+      };
+
+      // Normalizamos términos de búsqueda para comparar
+      const normalizedStoreTerm = storeSearchTerm?.toLowerCase() ?? "";
+      const normalizedProductTerm = productSearchTerm?.toLowerCase() ?? "";
+
+      const matchesStore =
+        !storeSearchTerm ||
+        store.name.toLowerCase().includes(normalizedStoreTerm) ||
+        (store.description?.toLowerCase().includes(normalizedStoreTerm) ?? false);
+
+      const matchesProduct =
+        !productSearchTerm ||
+        products.some(product =>
+          product.name.toLowerCase().includes(normalizedProductTerm) ||
+          (product.description?.toLowerCase().includes(normalizedProductTerm) ?? false)
+        );
+
+      // Solo agregamos la tienda si cumple con los términos de búsqueda (store y producto)
+      if (matchesStore && matchesProduct) {
+        matchingStores.push(store);
+      }
+
+      newLastVisible = doc;
+    }
+
+    return { stores: matchingStores, lastVisible: newLastVisible };
+  } catch (error: unknown) {
+    console.error("Error getting paginated stores by criteria:", error);
     throw error;
   }
 };
