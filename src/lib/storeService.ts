@@ -32,6 +32,13 @@ interface StoreData {
   category: string;
   coverImage?: string;
   socialMedia?: { platform: string; link: string }[];
+  tags: string[];
+  stars: number;
+  views: number;
+  clicks: number;
+  whatsappClicks: number;
+  productSells: number;
+  followers: number;
 }
 
 interface ProductDataBase {
