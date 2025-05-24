@@ -317,7 +317,7 @@ export default function CreateStorePage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Crear una nueva tienda</h1>
 
-      {user?.email === "german@team.nspsac.com" || user?.email === "carlosmerma99@gmail.com" ? (
+      {user ? (
         <div className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-xl">
           {/* Indicadores de Paso Clickables */}
           <div className="flex justify-between mb-8">
@@ -709,7 +709,7 @@ export default function CreateStorePage() {
           </form>
         </div>
       ) : (
-        <p className="text-center text-lg text-red-600 mt-8">No tienes permisos para crear una tienda.</p>
+        <p className="text-center text-lg text-red-600 mt-8">Inicie sesión para poder crear una tienda.</p>
       )}
     </div>
   );

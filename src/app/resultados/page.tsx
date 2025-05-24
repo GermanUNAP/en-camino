@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService"; // función actualizada que acepta dos términos de búsqueda
+import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { STORE_CATEGORIES } from "@/lib/constants";
-
+import { Suspense } from "react";
 interface StoreCardProps {
   store: Store;
 }
@@ -44,7 +44,6 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams();
-  // Aquí recogemos los dos términos separados de búsqueda
   const searchTermTiendas = searchParams.get("tienda");
   const searchTermProductos = searchParams.get("producto");
   const categoriaSlug = searchParams.get("categoria");
@@ -115,45 +114,48 @@ export default function SearchResultsPage() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-xl font-bold mb-6">
-        Resultados de la búsqueda
-      </h1>
+    <Suspense>
+      <div className="container mx-auto py-10">
+        <h1 className="text-xl font-bold mb-6">
+          Resultados de la búsqueda
+        </h1>
 
-      {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
+        {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
 
-      {loading && stores.length === 0 ? (
-        <div className="flex justify-center items-center py-6">
-          <Loader2 className="animate-spin h-10 w-10 mr-2" />
-          Cargando resultados...
-        </div>
-      ) : error ? (
-        <p className="text-center text-red-500 py-4">{error}</p>
-      ) : stores.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {stores.map((store) => (
-              <StoreCard key={store.id} store={store} />
-            ))}
+        {loading && stores.length === 0 ? (
+          <div className="flex justify-center items-center py-6">
+            <Loader2 className="animate-spin h-10 w-10 mr-2" />
+            Cargando resultados...
           </div>
-
-          {hasMore && (
-            <div className="flex justify-center mt-6">
-              <Button onClick={loadMore} disabled={loading}>
-                {loading ? (
-                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                ) : (
-                  "Cargar más"
-                )}
-              </Button>
+        ) : error ? (
+          <p className="text-center text-red-500 py-4">{error}</p>
+        ) : stores.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {stores.map((store) => (
+                <StoreCard key={store.id} store={store} />
+              ))}
             </div>
-          )}
-        </>
-      ) : (
-        <p className="text-center text-muted-foreground py-4">
-          No se encontraron resultados con los criterios seleccionados.
-        </p>
-      )}
-    </div>
+
+            {hasMore && (
+              <div className="flex justify-center mt-6">
+                <Button onClick={loadMore} disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  ) : (
+                    "Cargar más"
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-center text-muted-foreground py-4">
+            No se encontraron resultados con los criterios seleccionados.
+          </p>
+        )}
+      </div>
+    </Suspense>
+    
   );
 }
