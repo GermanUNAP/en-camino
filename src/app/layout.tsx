@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import WhatsAppButton from "../../components/WhatsaapButton";
+import { Suspense } from "react";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -20,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className={cn(geistSans.variable, geistMono.variable, "min-h-screen bg-background antialiased flex flex-col ")}>
         <Navbar />
-        <main className="p-4 flex-grow">{children}</main>
+        <main className="p-4 flex-grow"> <Suspense>{children}</Suspense></main>
         <Toaster />
         <Footer />
         <WhatsAppButton /> 
