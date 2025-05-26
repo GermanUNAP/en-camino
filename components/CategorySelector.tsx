@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { X, Plus } from "lucide-react"; // Importa el icono Plus
 import { STORE_CATEGORIES } from "@/lib/constants";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,43 +59,41 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ onCategoriesChange,
   };
 
   return (
-    <Suspense>
-      <div className="flex flex-wrap gap-2 items-center">
-        {selectedCategories.map((slug) => {
-          const selectedCategory = STORE_CATEGORIES.find((cat) => cat.slug === slug);
-          return selectedCategory ? (
-            <Button
-              key={slug}
-              variant="secondary"
-              size="sm"
-              className="rounded-full flex items-center gap-1"
-              onClick={() => handleRemoveCategory(slug)}
-            >
-              {selectedCategory.name}
-              <X className="h-4 w-4" />
-            </Button>
-          ) : null;
-        })}
+    <div className="flex flex-wrap gap-2 items-center">
+      {selectedCategories.map((slug) => {
+        const selectedCategory = STORE_CATEGORIES.find((cat) => cat.slug === slug);
+        return selectedCategory ? (
+          <Button
+            key={slug}
+            variant="secondary"
+            size="sm"
+            className="rounded-full flex items-center gap-1"
+            onClick={() => handleRemoveCategory(slug)}
+          >
+            {selectedCategory.name}
+            <X className="h-4 w-4" />
+          </Button>
+        ) : null;
+      })}
 
-        {availableCategories.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <Plus className="h-4 w-4" /> {/* Añade el icono Plus aquí */}
-                Añadir Categoría
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {availableCategories.map((category) => (
-                <DropdownMenuItem key={category.slug} onSelect={() => handleSelectCategory(category)}>
-                  {category.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-    </Suspense>
+      {availableCategories.length > 0 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Plus className="h-4 w-4" /> {/* Añade el icono Plus aquí */}
+              Añadir Categoría
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {availableCategories.map((category) => (
+              <DropdownMenuItem key={category.slug} onSelect={() => handleSelectCategory(category)}>
+                {category.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   );
 };
 
