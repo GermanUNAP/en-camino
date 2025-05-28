@@ -7,7 +7,7 @@ import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Image from "next/image";
 import { Menu, LogIn, LogOut, Search, Store, User as UserIcon, ShoppingBag, Landmark } from "lucide-react";
-import { // Ensure these imports are available from your previous version
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -15,10 +15,10 @@ import { // Ensure these imports are available from your previous version
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { useRouter, useSearchParams } from "next/navigation"; // Changed from usePathname for search functionality
-import ComboBoxCiudad from "./CityCombobox"; // Assuming this component exists
-import { City } from "@/types/city"; // Assuming this type exists
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"; // Assuming these components exist
+import { useRouter, useSearchParams } from "next/navigation";
+import ComboBoxCiudad from "./CityCombobox"; 
+import { City } from "@/types/city"; 
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,7 +26,6 @@ export default function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // State for search functionality (re-introduced from your first request)
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [storeSearchTerm, setStoreSearchTerm] = useState<string>("");
@@ -131,12 +130,10 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Botón para menú en móviles */}
         <button className="md:hidden text-muted-foreground" onClick={() => setMenuOpen(!menuOpen)}>
           <Menu size={28} />
         </button>
 
-        {/* Navegación en escritorio */}
         <div className="hidden md:flex flex-wrap items-center justify-end gap-4">
           {/* Re-introduce search bars and selectors */}
           <form onSubmit={handleSearchSubmit} className="flex items-center relative">
@@ -181,7 +178,6 @@ export default function Navbar() {
             <Search size={16} />
             Buscar
           </Button>
-          {/* End re-introduced search bars and selectors */}
 
           {!user ? (
             <Link href="/login">
@@ -210,7 +206,6 @@ export default function Navbar() {
                     Ver perfil
                   </DropdownMenuItem>
                 </Link>
-                {/* No longer using 'isAuthorized' for 'Crear tienda' as per initial request to remove it */}
                 <Link href="/createStore">
                   <DropdownMenuItem className="text-foreground font-semibold hover:opacity-80 gap-2">
                     <Store size={16} />
@@ -227,7 +222,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Navegación para móviles */}
       {menuOpen && (
         <div className="mt-4 flex flex-col md:hidden gap-2">
           {/* Re-introduce search bars and selectors for mobile */}
@@ -273,7 +267,6 @@ export default function Navbar() {
               </SelectContent>
             </Select>
           </div>
-          {/* End re-introduced search bars and selectors for mobile */}
 
           {!user ? (
             <Link href="/login">
@@ -290,7 +283,6 @@ export default function Navbar() {
                   Ver perfil
                 </Button>
               </Link>
-              {/* No longer using 'isAuthorized' for 'Crear tienda' as per initial request to remove it */}
               <Link href="/createStore">
                 <Button className="text-foreground font-semibold hover:opacity-80 w-full gap-1">
                   <Store size={16} />
