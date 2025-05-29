@@ -1,4 +1,5 @@
-"use client";
+// app/resultados/components/SearchResultsClientContent.tsx
+"use client"; // ¡MUY IMPORTANTE! Esto lo marca como un componente cliente
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
@@ -6,48 +7,44 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation"; // Este hook ahora está dentro de un "use client"
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { Suspense } from "react";
 
 interface StoreCardProps {
   store: Store;
 }
 
 const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
-  <Suspense>
-    <div className="bg-white rounded-md shadow-md p-4">
-      <Link href={`/tienda/${store.id}`} className="block">
-        <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
-          {store.coverImage ? (
-            <Image
-              src={store.coverImage}
-              alt={`Portada de ${store.name}`}
-              layout="fill"
-              objectFit="cover"
-              onError={(e) => console.error("Error loading image:", e)}
-            />
-          ) : (
-            <div className="bg-gray-100 w-full h-full flex items-center justify-center">
-              <span className="text-gray-500 text-sm">Sin imagen</span>
-            </div>
-          )}
-        </div>
-        <h3 className="text-lg font-semibold text-foreground mb-1">{store.name}</h3>
-        {store.description && (
-          <p className="text-sm text-muted-foreground truncate">{store.description}</p>
+  <div className="bg-white rounded-md shadow-md p-4">
+    <Link href={`/tienda/${store.id}`} className="block">
+      <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
+        {store.coverImage ? (
+          <Image
+            src={store.coverImage}
+            alt={`Portada de ${store.name}`}
+            layout="fill"
+            objectFit="cover"
+            onError={(e) => console.error("Error loading image:", e)}
+          />
+        ) : (
+          <div className="bg-gray-100 w-full h-full flex items-center justify-center">
+            <span className="text-gray-500 text-sm">Sin imagen</span>
+          </div>
         )}
-        <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
-        {store.city && <p className="text-sm text-muted-foreground">Ciudad: {store.city}</p>}
-      </Link>
-    </div>
-  </Suspense>
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-1">{store.name}</h3>
+      {store.description && (
+        <p className="text-sm text-muted-foreground truncate">{store.description}</p>
+      )}
+      <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
+      {store.city && <p className="text-sm text-muted-foreground">Ciudad: {store.city}</p>}
+    </Link>
+  </div>
 );
 
-export default function SearchResultsPage() {
-  const searchParams = useSearchParams();
-
+export default function SearchResultsClientContent() {
+  const searchParams = useSearchParams(); // ¡Aquí es donde se usa el hook!
   // ✅ Usa useMemo para estabilizar los valores
   const searchTermTiendas = useMemo(() => searchParams.get("tienda"), [searchParams]);
   const searchTermProductos = useMemo(() => searchParams.get("producto"), [searchParams]);
@@ -107,8 +104,9 @@ export default function SearchResultsPage() {
     setLastVisible(null);
     setHasMore(true);
     setError(null);
+    // ✅ Pasa las dependencias explícitamente si fetchStores cambia
     fetchStores(true);
-  }, [fetchStores]);
+  }, [searchTermTiendas, searchTermProductos, categoriaSlug, ciudadSlug, fetchStores]); // Incluye fetchStores aquí también
 
   const loadMore = () => {
     if (!loading && hasMore) {
@@ -117,45 +115,43 @@ export default function SearchResultsPage() {
   };
 
   return (
-    <Suspense>
-      <div className="container mx-auto py-10">
-        <h1 className="text-xl font-bold mb-6">Resultados de la búsqueda</h1>
+    <div className="container mx-auto py-10">
+      <h1 className="text-xl font-bold mb-6">Resultados de la búsqueda</h1>
 
-        {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
+      {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
 
-        {loading && stores.length === 0 ? (
-          <div className="flex justify-center items-center py-6">
-            <Loader2 className="animate-spin h-10 w-10 mr-2" />
-            Cargando resultados...
+      {loading && stores.length === 0 ? (
+        <div className="flex justify-center items-center py-6">
+          <Loader2 className="animate-spin h-10 w-10 mr-2" />
+          Cargando resultados...
+        </div>
+      ) : error ? (
+        <p className="text-center text-red-500 py-4">{error}</p>
+      ) : stores.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {stores.map((store) => (
+              <StoreCard key={store.id} store={store} />
+            ))}
           </div>
-        ) : error ? (
-          <p className="text-center text-red-500 py-4">{error}</p>
-        ) : stores.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {stores.map((store) => (
-                <StoreCard key={store.id} store={store} />
-              ))}
-            </div>
 
-            {hasMore && (
-              <div className="flex justify-center mt-6">
-                <Button onClick={loadMore} disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                  ) : (
-                    "Cargar más"
-                  )}
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="text-center text-muted-foreground py-4">
-            No se encontraron resultados con los criterios seleccionados.
-          </p>
-        )}
-      </div>
-    </Suspense>
+          {hasMore && (
+            <div className="flex justify-center mt-6">
+              <Button onClick={loadMore} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                ) : (
+                  "Cargar más"
+                )}
+              </Button>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-center text-muted-foreground py-4">
+          No se encontraron resultados con los criterios seleccionados.
+        </p>
+      )}
+    </div>
   );
 }
