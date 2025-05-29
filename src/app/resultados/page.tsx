@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -22,9 +22,9 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
           <Image
             src={store.coverImage}
             alt={`Portada de ${store.name}`}
-            fill
-            style={{ objectFit: "cover" }}
-            onError={(e) => console.error("Error al cargar imagen:", e)}
+            layout="fill"
+            objectFit="cover"
+            onError={(e) => console.error("Error loading image:", e)}
           />
         ) : (
           <div className="bg-gray-100 w-full h-full flex items-center justify-center">
@@ -44,10 +44,12 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams();
-  const searchTermTiendas = searchParams.get("tienda");
-  const searchTermProductos = searchParams.get("producto");
-  const categoriaSlug = searchParams.get("categoria");
-  const ciudadSlug = searchParams.get("ciudad");
+
+  // ✅ Usa useMemo para estabilizar los valores
+  const searchTermTiendas = useMemo(() => searchParams.get("tienda"), [searchParams]);
+  const searchTermProductos = useMemo(() => searchParams.get("producto"), [searchParams]);
+  const categoriaSlug = useMemo(() => searchParams.get("categoria"), [searchParams]);
+  const ciudadSlug = useMemo(() => searchParams.get("ciudad"), [searchParams]);
 
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,17 +79,16 @@ export default function SearchResultsPage() {
         setLastVisible(newLastVisible);
         setHasMore(newStores.length === 6);
 
-        // Construcción de info de búsqueda
         let infoParts: string[] = [];
-        if (searchTermTiendas) infoParts.push(`Tiendas: "${searchTermTiendas}"`);
-        if (searchTermProductos) infoParts.push(`Productos: "${searchTermProductos}"`);
+        if (searchTermTiendas) infoParts.push(`Buscando en tiendas: "${searchTermTiendas}"`);
+        if (searchTermProductos) infoParts.push(`Buscando en productos: "${searchTermProductos}"`);
         if (categoriaSlug) {
           const catName = STORE_CATEGORIES.find(cat => cat.slug === categoriaSlug)?.name || categoriaSlug;
           infoParts.push(`Categoría: ${catName}`);
         }
         if (ciudadSlug) infoParts.push(`Ciudad: ${ciudadSlug}`);
-        setSearchInfo(infoParts.join(" · "));
 
+        setSearchInfo(infoParts.join(", "));
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error desconocido");
         setHasMore(false);
@@ -104,7 +105,7 @@ export default function SearchResultsPage() {
     setHasMore(true);
     setError(null);
     fetchStores(true);
-  }, [searchTermTiendas, searchTermProductos, categoriaSlug, ciudadSlug]);
+  }, [fetchStores]);
 
   const loadMore = () => {
     if (!loading && hasMore) {
@@ -116,9 +117,7 @@ export default function SearchResultsPage() {
     <div className="container mx-auto py-10">
       <h1 className="text-xl font-bold mb-6">Resultados de la búsqueda</h1>
 
-      {searchInfo && (
-        <p className="mb-4 text-muted-foreground">{searchInfo}</p>
-      )}
+      {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
 
       {loading && stores.length === 0 ? (
         <div className="flex justify-center items-center py-6">
