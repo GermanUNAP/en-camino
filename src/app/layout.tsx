@@ -20,8 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className={cn(geistSans.variable, geistMono.variable, "min-h-screen bg-background antialiased flex flex-col ")}>
-        <Navbar />
-        <main className="p-4 flex-grow"> <Suspense>{children}</Suspense></main>
+        <Suspense><Navbar /></Suspense>
+        <main className="p-4 flex-grow">{children}</main>
         <Toaster />
         <Footer />
         <WhatsAppButton /> 
