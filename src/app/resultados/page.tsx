@@ -1,5 +1,4 @@
-// app/resultados/components/SearchResultsClientContent.tsx
-"use client"; // ¡MUY IMPORTANTE! Esto lo marca como un componente cliente
+"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
@@ -7,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation"; // Este hook ahora está dentro de un "use client"
+import { useSearchParams } from "next/navigation";
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { STORE_CATEGORIES } from "@/lib/constants";
+import { Suspense } from "react";
 
 interface StoreCardProps {
   store: Store;
@@ -43,8 +43,10 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
   </div>
 );
 
-export default function SearchResultsClientContent() {
-  const searchParams = useSearchParams(); // ¡Aquí es donde se usa el hook!
+// Componente separado que usa useSearchParams
+function SearchResultsContent() {
+  const searchParams = useSearchParams();
+
   // ✅ Usa useMemo para estabilizar los valores
   const searchTermTiendas = useMemo(() => searchParams.get("tienda"), [searchParams]);
   const searchTermProductos = useMemo(() => searchParams.get("producto"), [searchParams]);
@@ -104,9 +106,8 @@ export default function SearchResultsClientContent() {
     setLastVisible(null);
     setHasMore(true);
     setError(null);
-    // ✅ Pasa las dependencias explícitamente si fetchStores cambia
     fetchStores(true);
-  }, [searchTermTiendas, searchTermProductos, categoriaSlug, ciudadSlug, fetchStores]); // Incluye fetchStores aquí también
+  }, [fetchStores]);
 
   const loadMore = () => {
     if (!loading && hasMore) {
@@ -153,5 +154,21 @@ export default function SearchResultsClientContent() {
         </p>
       )}
     </div>
+  );
+}
+
+// Componente principal que envuelve con Suspense
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto py-10">
+        <div className="flex justify-center items-center py-6">
+          <Loader2 className="animate-spin h-10 w-10 mr-2" />
+          Cargando página...
+        </div>
+      </div>
+    }>
+      <SearchResultsContent />
+    </Suspense>
   );
 }
