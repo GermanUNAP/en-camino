@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
@@ -11,27 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
+import dynamic from 'next/dynamic';
+import React from 'react'; 
 
-// Importaciones de Leaflet
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+// Define the expected props for MapComponent
+interface MapComponentProps {
+  lat: number | undefined;
+  lng: number | undefined;
+  setLocation: (lat: number, lng: number) => void;
+}
 
-// Fix para el icono de Leaflet en Webpack/Next.js
-// Se crea un ícono personalizado para el marcador con un color diferente
-const customMarkerIcon = new L.Icon({
-  iconUrl: '/leaflet/images/marker-icon-red.png', // Asegúrate de tener esta imagen en tu carpeta public/leaflet/images
-  iconRetinaUrl: '/leaflet/images/marker-icon-2x-red.png', // Versión retina
-  shadowUrl: '/leaflet/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
-
-// Puedes generar estas imágenes o usar un servicio de CDN si lo prefieres
-// Para fines de este ejemplo, asumo que tienes 'marker-icon-red.png' y 'marker-icon-2x-red.png'
-// dentro de `public/leaflet/images/`
+const MapWithNoSSR = dynamic<MapComponentProps>( 
+  () => import('../../../components/MapComponent'), 
+  { ssr: false }
+);
 
 interface StoreData {
   userId: string;
@@ -39,7 +32,7 @@ interface StoreData {
   description?: string;
   address: string;
   phone?: string;
-  city?: string;
+  city?: string; // Consider if you need this field, it's not used in the form
   category: string;
   coverImages: string[];
   socialMedia?: { platform: string; link: string }[];
@@ -61,58 +54,9 @@ interface SocialMedia {
   link: string;
 }
 
-// Componente para el marcador en el mapa
-function LocationMarker({ setLocation, initialPosition }: { setLocation: (lat: number, lng: number) => void, initialPosition: L.LatLngExpression | null }) {
-  const [position, setPosition] = useState<L.LatLngExpression | null>(initialPosition);
-
-  const map = useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      setLocation(e.latlng.lat, e.latlng.lng);
-    },
-    locationfound(e) {
-      // Solo actualiza si no hay una posición inicial ya establecida por el usuario
-      if (!initialPosition) {
-        setPosition(e.latlng);
-        setLocation(e.latlng.lat, e.latlng.lng);
-        map.flyTo(e.latlng, map.getZoom());
-      }
-    },
-  });
-
-  // Intentar obtener la ubicación actual del usuario al cargar el mapa
-  useEffect(() => {
-    if (!initialPosition) { // Solo si no hay una posición ya establecida
-      map.locate();
-    } else {
-      map.flyTo(initialPosition, map.getZoom()); // Si hay posición, vuela a ella
-    }
-  }, [map, initialPosition]);
-
-  return position === null ? null : (
-    <Marker
-      position={position}
-      draggable={true}
-      icon={customMarkerIcon} // Usar el icono personalizado
-      eventHandlers={{
-        dragend: (e) => {
-          const marker = e.target;
-          const newPosition = marker.getLatLng();
-          setPosition(newPosition);
-          setLocation(newPosition.lat, newPosition.lng);
-        }
-      }}
-    >
-    </Marker>
-  );
-}
-
-
 export default function CreateStorePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-
-  // Estados del formulario
   const [storeName, setStoreName] = useState("");
   const [storeDescription, setStoreDescription] = useState("");
   const [storeAddress, setStoreAddress] = useState("");
@@ -125,19 +69,13 @@ export default function CreateStorePage() {
     link: "",
   });
   const [isAddingSocialMedia, setIsAddingSocialMedia] = useState(false);
-  const [storeTags, setStoreTags] = useState<string[]>([]);// Internamente tags
+  const [storeTags, setStoreTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState<string>("");
-
-  // Nuevos estados para la ubicación
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
   const [isOnlineStore, setIsOnlineStore] = useState(false);
-
-  // Estado para el flujo de pasos
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
-
-  // Estado para el método de pago
   const [paymentMethod, setPaymentMethod] = useState<"yape" | "card" | null>(null);
   const [isSubmittingStore, setIsSubmittingStore] = useState(false);
 
@@ -149,21 +87,17 @@ export default function CreateStorePage() {
     return () => unsubscribe();
   }, []);
 
-  // --- Funciones de Navegación entre Pasos ---
   const handleNextStep = () => {
-    // Validaciones por paso
     if (currentStep === 1) {
       if (!storeName || !storeAddress || !storeCategory) {
         toast.error("Por favor, completa los campos obligatorios del Paso 1.");
         return;
       }
-      // Validación de formato de teléfono
       if (storePhone && !/^(9\d{8})$/.test(storePhone)) {
         toast.error("El número de WhatsApp debe tener 9 dígitos y empezar con 9 (ej: 9XXXXXXXX).");
         return;
       }
     }
-    // Puedes añadir más validaciones para otros pasos aquí si es necesario
     setCurrentStep((prev) => prev + 1);
   };
 
@@ -171,9 +105,24 @@ export default function CreateStorePage() {
     setCurrentStep((prev) => prev - 1);
   };
 
-  // Permite al usuario ir a un paso específico
   const goToStep = (step: number) => {
-    if (step >= 1 && step <= totalSteps) {
+    // Allow going back to previous steps, but not forward if validation fails for the current step.
+    if (step < currentStep) {
+      setCurrentStep(step);
+    } else if (step === currentStep) {
+      // Do nothing if trying to go to the current step
+    } else {
+      // Prevent skipping steps if validation fails for the current step
+      if (currentStep === 1) {
+        if (!storeName || !storeAddress || !storeCategory) {
+          toast.error("Por favor, completa los campos obligatorios del Paso 1 antes de avanzar.");
+          return;
+        }
+        if (storePhone && !/^(9\d{8})$/.test(storePhone)) {
+          toast.error("El número de WhatsApp debe tener 9 dígitos y empezar con 9 (ej: 9XXXXXXXX).");
+          return;
+        }
+      }
       setCurrentStep(step);
     }
   };
@@ -197,8 +146,9 @@ export default function CreateStorePage() {
       toast.error("Por favor, selecciona un método de pago.");
       return;
     }
+
     toast.info(`Procesando pago con ${paymentMethod === 'yape' ? 'Yape' : 'Tarjeta de Crédito'}...`);
-    // Simular un pago exitoso
+    // Simulate payment processing
     await new Promise(resolve => setTimeout(resolve, 2000));
     toast.success("Pago procesado con éxito.");
 
@@ -226,8 +176,8 @@ export default function CreateStorePage() {
         phone: storePhone,
         category: storeCategory,
         coverImages: coverImageUrls,
-        socialMedia: socialMediaLinks,
-        tags: storeTags, 
+        socialMedia: socialMediaLinks.length > 0 ? socialMediaLinks : undefined,
+        tags: storeTags,
         latitude: latitude,
         longitude: longitude,
         stars: 0,
@@ -312,19 +262,17 @@ export default function CreateStorePage() {
     setLongitude(lng);
   };
 
-
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Crear una nueva tienda</h1>
 
       {user ? (
         <div className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-xl">
-          {/* Indicadores de Paso Clickables */}
           <div className="flex justify-between mb-8">
             {[1, 2, 3, 4, 5].map((step) => (
               <button
                 key={step}
-                type="button" // Importante para que no actúe como submit
+                type="button"
                 onClick={() => goToStep(step)}
                 className={`flex-1 text-center py-2 border-b-2 transition-colors duration-200
                   ${currentStep >= step
@@ -333,7 +281,7 @@ export default function CreateStorePage() {
                   }
                   ${step > currentStep ? "cursor-not-allowed" : "cursor-pointer"}
                 `}
-                disabled={step > currentStep} // Deshabilita ir a pasos futuros
+                disabled={step > currentStep}
               >
                 Paso {step}
               </button>
@@ -341,7 +289,6 @@ export default function CreateStorePage() {
           </div>
 
           <form onSubmit={handleCreateStore}>
-            {/* Paso 1: Información Básica */}
             {currentStep === 1 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">1. Información Básica de la Tienda</h2>
@@ -412,7 +359,6 @@ export default function CreateStorePage() {
               </div>
             )}
 
-            {/* Paso 2: Redes Sociales y Etiquetas */}
             {currentStep === 2 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">2. Redes Sociales y Etiquetas</h2>
@@ -505,7 +451,6 @@ export default function CreateStorePage() {
               </div>
             )}
 
-            {/* Paso 3: Ubicación (Opcional) */}
             {currentStep === 3 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">3. Ubicación de la Tienda (Opcional)</h2>
@@ -527,21 +472,11 @@ export default function CreateStorePage() {
 
                 {!isOnlineStore && (
                   <div className="w-full h-80 rounded-md overflow-hidden border border-gray-300 mb-4">
-                    <MapContainer
-                      center={latitude && longitude ? [latitude, longitude] : [-16.3988, -71.5369]} // Centro inicial en Arequipa o coordenadas existentes
-                      zoom={13}
-                      scrollWheelZoom={true} // Habilitar scroll para zoom
-                      className="h-full w-full"
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
-                      <LocationMarker
-                        setLocation={updateLocation}
-                        initialPosition={latitude && longitude ? [latitude, longitude] : null}
-                      />
-                    </MapContainer>
+                    <MapWithNoSSR
+                      lat={latitude}
+                      lng={longitude}
+                      setLocation={updateLocation}
+                    />
                   </div>
                 )}
 
@@ -562,7 +497,6 @@ export default function CreateStorePage() {
               </div>
             )}
 
-            {/* Paso 4: Imágenes de Portada */}
             {currentStep === 4 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">4. Imágenes de Portada</h2>
@@ -591,7 +525,7 @@ export default function CreateStorePage() {
                             type="button"
                             size="sm"
                             variant="destructive"
-                            className="absolute top-1 right-1 p-1 h-auto text-xs bg-red-600 hover:bg-red-700 text-white" // Siempre visible y rojo
+                            className="absolute top-1 right-1 p-1 h-auto text-xs bg-red-600 hover:bg-red-700 text-white"
                             onClick={() => handleRemoveSelectedImage(index)}
                           >
                             X
@@ -604,7 +538,6 @@ export default function CreateStorePage() {
               </div>
             )}
 
-            {/* Paso 5: Resumen y Pago */}
             {currentStep === 5 && (
               <div>
                 <h2 className="text-2xl font-semibold mb-6">5. Resumen y Pago</h2>
@@ -688,7 +621,6 @@ export default function CreateStorePage() {
               </div>
             )}
 
-            {/* Controles de Navegación */}
             <div className="flex justify-between mt-8 pt-4 border-t">
               {currentStep > 1 && (
                 <Button type="button" onClick={handlePrevStep} variant="outline">
