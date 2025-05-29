@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { Suspense } from "react";
+
 interface StoreCardProps {
   store: Store;
 }
@@ -22,9 +22,9 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
           <Image
             src={store.coverImage}
             alt={`Portada de ${store.name}`}
-            layout="fill"
-            objectFit="cover"
-            onError={(e) => console.error("Error loading image:", e)}
+            fill
+            style={{ objectFit: "cover" }}
+            onError={(e) => console.error("Error al cargar imagen:", e)}
           />
         ) : (
           <div className="bg-gray-100 w-full h-full flex items-center justify-center">
@@ -77,17 +77,16 @@ export default function SearchResultsPage() {
         setLastVisible(newLastVisible);
         setHasMore(newStores.length === 6);
 
-        // Construimos la info de búsqueda visible
+        // Construcción de info de búsqueda
         let infoParts: string[] = [];
-        if (searchTermTiendas) infoParts.push(`Buscando en tiendas: "${searchTermTiendas}"`);
-        if (searchTermProductos) infoParts.push(`Buscando en productos: "${searchTermProductos}"`);
+        if (searchTermTiendas) infoParts.push(`Tiendas: "${searchTermTiendas}"`);
+        if (searchTermProductos) infoParts.push(`Productos: "${searchTermProductos}"`);
         if (categoriaSlug) {
           const catName = STORE_CATEGORIES.find(cat => cat.slug === categoriaSlug)?.name || categoriaSlug;
           infoParts.push(`Categoría: ${catName}`);
         }
         if (ciudadSlug) infoParts.push(`Ciudad: ${ciudadSlug}`);
-
-        setSearchInfo(infoParts.join(", "));
+        setSearchInfo(infoParts.join(" · "));
 
       } catch (e) {
         setError(e instanceof Error ? e.message : "Error desconocido");
@@ -114,47 +113,45 @@ export default function SearchResultsPage() {
   };
 
   return (
-    <Suspense>
-      <div className="container mx-auto py-10">
-        <h1 className="text-xl font-bold mb-6">
-          Resultados de la búsqueda
-        </h1>
+    <div className="container mx-auto py-10">
+      <h1 className="text-xl font-bold mb-6">Resultados de la búsqueda</h1>
 
-        {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
+      {searchInfo && (
+        <p className="mb-4 text-muted-foreground">{searchInfo}</p>
+      )}
 
-        {loading && stores.length === 0 ? (
-          <div className="flex justify-center items-center py-6">
-            <Loader2 className="animate-spin h-10 w-10 mr-2" />
-            Cargando resultados...
+      {loading && stores.length === 0 ? (
+        <div className="flex justify-center items-center py-6">
+          <Loader2 className="animate-spin h-10 w-10 mr-2" />
+          Cargando resultados...
+        </div>
+      ) : error ? (
+        <p className="text-center text-red-500 py-4">{error}</p>
+      ) : stores.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {stores.map((store) => (
+              <StoreCard key={store.id} store={store} />
+            ))}
           </div>
-        ) : error ? (
-          <p className="text-center text-red-500 py-4">{error}</p>
-        ) : stores.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {stores.map((store) => (
-                <StoreCard key={store.id} store={store} />
-              ))}
-            </div>
 
-            {hasMore && (
-              <div className="flex justify-center mt-6">
-                <Button onClick={loadMore} disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                  ) : (
-                    "Cargar más"
-                  )}
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="text-center text-muted-foreground py-4">
-            No se encontraron resultados con los criterios seleccionados.
-          </p>
-        )}
-      </div>
-    </Suspense>
+          {hasMore && (
+            <div className="flex justify-center mt-6">
+              <Button onClick={loadMore} disabled={loading}>
+                {loading ? (
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                ) : (
+                  "Cargar más"
+                )}
+              </Button>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-center text-muted-foreground py-4">
+          No se encontraron resultados con los criterios seleccionados.
+        </p>
+      )}
+    </div>
   );
 }
