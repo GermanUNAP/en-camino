@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -43,11 +43,9 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
   </div>
 );
 
-// Componente separado que usa useSearchParams
 function SearchResultsContent() {
   const searchParams = useSearchParams();
 
-  // ✅ Usa useMemo para estabilizar los valores
   const searchTermTiendas = useMemo(() => searchParams.get("tienda"), [searchParams]);
   const searchTermProductos = useMemo(() => searchParams.get("producto"), [searchParams]);
   const categoriaSlug = useMemo(() => searchParams.get("categoria"), [searchParams]);
@@ -60,28 +58,30 @@ function SearchResultsContent() {
   const [hasMore, setHasMore] = useState(true);
   const [searchInfo, setSearchInfo] = useState<string>("");
 
-  const fetchStores = useCallback(
-    async (isInitial = false) => {
-      if (loading || (!hasMore && !isInitial)) return;
+  // ⚠️ Este efecto solo se dispara cuando cambian los términos de búsqueda
+  useEffect(() => {
+    const fetchInitialStores = async () => {
+      setLoading(true);
+      setError(null);
+      setStores([]);
+      setLastVisible(null);
+      setHasMore(true);
 
       try {
-        setLoading(true);
-        setError(null);
-
         const { stores: newStores, lastVisible: newLastVisible } =
           await getPaginatedStoresByCriteria(
             searchTermTiendas || undefined,
             searchTermProductos || undefined,
             categoriaSlug || undefined,
             ciudadSlug || undefined,
-            isInitial ? null : lastVisible
+            null
           );
 
-        setStores((prev) => (isInitial ? newStores : [...prev, ...newStores]));
+        setStores(newStores);
         setLastVisible(newLastVisible);
         setHasMore(newStores.length === 6);
 
-        let infoParts: string[] = [];
+        const infoParts: string[] = [];
         if (searchTermTiendas) infoParts.push(`Buscando en tiendas: "${searchTermTiendas}"`);
         if (searchTermProductos) infoParts.push(`Buscando en productos: "${searchTermProductos}"`);
         if (categoriaSlug) {
@@ -97,26 +97,38 @@ function SearchResultsContent() {
       } finally {
         setLoading(false);
       }
-    },
-    [searchTermTiendas, searchTermProductos, categoriaSlug, ciudadSlug, loading, hasMore, lastVisible]
-  );
+    };
 
-  useEffect(() => {
-    setStores([]);
-    setLastVisible(null);
-    setHasMore(true);
-    setError(null);
-    fetchStores(true);
-  }, [fetchStores]);
+    fetchInitialStores();
+  }, [searchTermTiendas, searchTermProductos, categoriaSlug, ciudadSlug]);
 
-  const loadMore = () => {
-    if (!loading && hasMore) {
-      fetchStores(false);
+  const loadMore = async () => {
+    if (loading || !hasMore) return;
+
+    setLoading(true);
+    try {
+      const { stores: newStores, lastVisible: newLastVisible } =
+        await getPaginatedStoresByCriteria(
+          searchTermTiendas || undefined,
+          searchTermProductos || undefined,
+          categoriaSlug || undefined,
+          ciudadSlug || undefined,
+          lastVisible
+        );
+
+      setStores((prev) => [...prev, ...newStores]);
+      setLastVisible(newLastVisible);
+      setHasMore(newStores.length === 6);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error desconocido");
+      setHasMore(false);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-4">
       <h1 className="text-xl font-bold mb-6">Resultados de la búsqueda</h1>
 
       {searchInfo && <p className="mb-4 text-muted-foreground">{searchInfo}</p>}
@@ -157,7 +169,6 @@ function SearchResultsContent() {
   );
 }
 
-// Componente principal que envuelve con Suspense
 export default function SearchResultsPage() {
   return (
     <Suspense fallback={

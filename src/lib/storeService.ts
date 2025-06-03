@@ -440,24 +440,10 @@ export const getPaginatedStoresByCriteria = async (
       limit(STORES_PER_PAGE),
     ];
 
-    if (lastVisible) {
-      baseConstraints.push(startAfter(lastVisible));
-    }
+    if (lastVisible) baseConstraints.push(startAfter(lastVisible));
+    if (categorySlug) baseConstraints.push(where("category", "==", categorySlug));
 
-    const filterConstraints: QueryConstraint[] = [];
-
-    if (categorySlug) {
-      filterConstraints.push(where("category", "==", categorySlug));
-    }
-
-    if (citySlug && citySlug.trim() !== "") {
-      const cityFilter = citySlug.toLowerCase();
-
-      filterConstraints.push(where("city", "==", cityFilter));
-    }
-
-    const q = query(storesCollection, ...filterConstraints, ...baseConstraints);
-
+    const q = query(storesCollection, ...baseConstraints);
     const snapshot = await getDocs(q);
 
     let newLastVisible: QueryDocumentSnapshot | null = null;
@@ -465,6 +451,10 @@ export const getPaginatedStoresByCriteria = async (
 
     for (const doc of snapshot.docs) {
       const storeData = doc.data() as Omit<Store, "id" | "products">;
+
+      // Ciudad en frontend
+      const matchesCity = !citySlug || storeData.city?.toLowerCase().trim() === citySlug.toLowerCase().trim();
+      if (!matchesCity) continue;
 
       const productsCollection = collection(db, "stores", doc.id, "products");
       const productsSnapshot = await getDocs(productsCollection);
@@ -481,33 +471,28 @@ export const getPaginatedStoresByCriteria = async (
         city: storeData.city ?? undefined,
       };
 
-      // Normalizamos términos de búsqueda para comparar
-      const normalizedStoreTerm = storeSearchTerm?.toLowerCase() ?? "";
-      const normalizedProductTerm = productSearchTerm?.toLowerCase() ?? "";
+      const normalizedStoreTerm = storeSearchTerm?.toLowerCase().trim() ?? "";
+      const normalizedProductTerm = productSearchTerm?.toLowerCase().trim() ?? "";
 
       const matchesStore =
-        !storeSearchTerm ||
+        !normalizedStoreTerm ||
         store.name.toLowerCase().includes(normalizedStoreTerm) ||
         (store.description?.toLowerCase().includes(normalizedStoreTerm) ?? false);
 
       const matchesProduct =
-        !productSearchTerm ||
+        !normalizedProductTerm ||
         products.some(product =>
           product.name.toLowerCase().includes(normalizedProductTerm) ||
           (product.description?.toLowerCase().includes(normalizedProductTerm) ?? false)
         );
 
-      // Solo agregamos la tienda si cumple con los términos de búsqueda (store y producto)
-      if (matchesStore && matchesProduct) {
-        matchingStores.push(store);
-      }
-
+      if (matchesStore && matchesProduct) matchingStores.push(store);
       newLastVisible = doc;
     }
 
     return { stores: matchingStores, lastVisible: newLastVisible };
-  } catch (error: unknown) {
-    console.error("Error getting paginated stores by criteria:", error);
+  } catch (error) {
+    console.error("Error filtering stores:", error);
     throw error;
   }
 };

@@ -17,20 +17,25 @@ import {
   doc,
   setDoc,
   serverTimestamp,
-  getDoc
+  getDoc,
 } from "firebase/firestore";
 import { app } from "./firebase";
 
 const db = getFirestore(app);
 const auth = getAuth(app);
-const firestore = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// Tipo para los datos de registro del usuario
 interface RegisterData {
   email: string;
   password: string;
   displayName: string;
+  telefono?: string;
+  direccion?: string;
+  fechaNacimiento?: string;
+  genero?: string;
+}
+
+interface ExtraFields {
   telefono?: string;
   direccion?: string;
   fechaNacimiento?: string;
@@ -61,6 +66,7 @@ export const loginWithGoogle = async () => {
   }
 };
 
+// Registro de nuevo usuario
 export const registerUser = async (data: RegisterData) => {
   const { email, password, displayName, telefono, direccion, fechaNacimiento, genero } = data;
 
@@ -71,7 +77,7 @@ export const registerUser = async (data: RegisterData) => {
     photoURL: "", // opcional
   });
 
-  await setDoc(doc(firestore, "usuarios", cred.user.uid), {
+  await setDoc(doc(db, "usuarios", cred.user.uid), {
     uid: cred.user.uid,
     email,
     displayName,
@@ -85,14 +91,7 @@ export const registerUser = async (data: RegisterData) => {
   return cred.user;
 };
 
-// Tipo para los campos adicionales
-interface ExtraFields {
-  telefono?: string;
-  direccion?: string;
-  fechaNacimiento?: string;
-  genero?: string;
-}
-
+// Actualización (o creación) del perfil del usuario
 export const updateUserProfile = async (
   displayName: string,
   photoFile: File | null,
@@ -103,6 +102,7 @@ export const updateUserProfile = async (
 
   let photoURL = user.photoURL;
 
+  // Subir nueva foto si se proporciona
   if (photoFile) {
     const storage = getStorage();
     const storageRef = ref(storage, `profile-images/${user.uid}`);
@@ -110,13 +110,15 @@ export const updateUserProfile = async (
     photoURL = await getDownloadURL(storageRef);
   }
 
+  // Actualizar perfil en Auth
   await updateProfile(user, { displayName, photoURL });
 
+  // Crear o actualizar documento en Firestore
   await setDoc(
-    doc(firestore, "usuarios", user.uid),
+    doc(db, "usuarios", user.uid),
     {
       uid: user.uid,
-      email: user.email,
+      email: user.email ?? "",
       displayName,
       photoURL,
       ...extraFields,
@@ -132,6 +134,7 @@ export const updateUserProfile = async (
   };
 };
 
+// Obtener perfil del usuario desde Firestore
 export const getUserProfileFromFirestore = async (uid: string) => {
   const docRef = doc(db, "usuarios", uid);
   const docSnap = await getDoc(docRef);
