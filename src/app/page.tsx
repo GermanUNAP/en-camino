@@ -1,93 +1,20 @@
-// ./app/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { getPaginatedStores, Store } from "@/lib/storeService";
-import { getLatestProductsFromFirebase, Product } from "@/lib/productoService";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { Store } from "@/lib/interfaces";
+import { getLatestProductsFromFirebase, Product } from "@/lib/productoService";
+import { getPaginatedStores } from "@/lib/storeService";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import SimpleProductCard from "../../components/SimpleProductCard";
+import StoreCard from "../../components/StoreCard";
 
-interface StoreCardProps {
-  store: Store;
-}
-
-const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
-  <div className="relative bg-white rounded-md shadow-md p-4 overflow-hidden">
-    <Link href={`/tienda/${store.id}`} className="block">
-      <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
-        {store.coverImage ? (
-          <Image
-            src={store.coverImage}
-            alt={`Portada de ${store.name}`}
-            layout="fill"
-            objectFit="cover"
-            onError={(e) => console.error("Error loading image:", e)}
-          />
-        ) : (
-          <div className="bg-gray-100 w-full h-full flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Sin imagen</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-1">{store.name}</h3>
-      {store.description && (
-        <p className="text-sm text-muted-foreground truncate">{store.description}</p>
-      )}
-      <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
-    </Link>
-    {/* Detalles sobre la tienda (puedes personalizarlos) */}
-    <div className="absolute top-2 left-2 bg-primary text-primary-foreground rounded-md text-xs font-semibold p-1 z-10">
-      Destacado
-    </div>
-  </div>
-);
 
 interface SimpleProductCardProps {
   product: Product;
   storeId: string;
 }
-
-const SimpleProductCard: React.FC<SimpleProductCardProps> = ({
-  product,
-  storeId,
-}) => (
-  <div className="relative bg-white rounded-md shadow-md p-4 overflow-hidden">
-    <Link href={`/tienda/${storeId}/producto/${product.id}`} className="block">
-      <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
-        {product.images && product.images.length > 0 ? (
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            layout="fill"
-            objectFit="cover"
-            onError={(e) => console.error("Error loading image:", e)}
-          />
-        ) : (
-          <div className="bg-gray-100 w-full h-full flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Sin imagen</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-md font-semibold text-foreground mb-1 truncate">
-        {product.name}
-      </h3>
-      <p className="text-sm text-muted-foreground">
-        S/ {product.price}
-      </p>
-      {product.description && (
-        <p className="text-xs text-muted-foreground truncate">
-          {product.description}
-        </p>
-      )}
-    </Link>
-    {/* Detalles sobre el producto (puedes personalizarlos) */}
-    <div className="absolute top-2 right-2 bg-secondary text-secondary-foreground rounded-md text-xs font-semibold p-1 z-10">
-      Oferta
-    </div>
-  </div>
-);
 
 export default function HomePage() {
   const [latestStores, setLatestStores] = useState<Store[]>([]);
@@ -114,7 +41,7 @@ export default function HomePage() {
         setLoadingStores(false);
       }
     };
-  
+
     const fetchLatestProducts = async () => {
       setLoadingProducts(true);
       setErrorProducts(null);
@@ -131,11 +58,11 @@ export default function HomePage() {
         setLoadingProducts(false);
       }
     };
-  
+
     fetchLatestStores();
     fetchLatestProducts();
   }, []);
-  
+
 
   return (
     <div className="bg-gradient-to-br from-indigo-200 via-purple-300 to-pink-200 min-h-screen py-10">
@@ -147,7 +74,7 @@ export default function HomePage() {
           Cada escaneo, una historia que transforma.
         </p>
         {/* <Button variant="outline" className="rounded-full px-8 py-3 font-semibold">
-          Escanear para empezar
+          Escanee para empezar
         </Button> */}
 
         {/* Tiendas Destacadas */}

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
- import Image from 'next/image';
- import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
- import { Button } from "@/components/ui/button";
- import { cn } from "@/lib/utils";
- import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
- import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
+import Image from 'next/image';
+import Link from 'next/link';
+import React, { useEffect, useRef, useState } from 'react';
 
  interface Product {
   id: string;

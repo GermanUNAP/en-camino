@@ -1,47 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { getPaginatedStoresByCriteria, Store } from "@/lib/storeService";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { QueryDocumentSnapshot } from "firebase/firestore";
 import { STORE_CATEGORIES } from "@/lib/constants";
-import { Suspense } from "react";
-
-interface StoreCardProps {
-  store: Store;
-}
-
-const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
-  <div className="bg-white rounded-md shadow-md p-4">
-    <Link href={`/tienda/${store.id}`} className="block">
-      <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
-        {store.coverImage ? (
-          <Image
-            src={store.coverImage}
-            alt={`Portada de ${store.name}`}
-            layout="fill"
-            objectFit="cover"
-            onError={(e) => console.error("Error loading image:", e)}
-          />
-        ) : (
-          <div className="bg-gray-100 w-full h-full flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Sin imagen</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-1">{store.name}</h3>
-      {store.description && (
-        <p className="text-sm text-muted-foreground truncate">{store.description}</p>
-      )}
-      <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
-      {store.city && <p className="text-sm text-muted-foreground">Ciudad: {store.city}</p>}
-    </Link>
-  </div>
-);
+import { Store } from "@/lib/interfaces";
+import { getPaginatedStoresByCriteria } from "@/lib/storeService";
+import { QueryDocumentSnapshot } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import StoreCard from "../../../components/StoreCard";
 
 function SearchResultsContent() {
   const searchParams = useSearchParams();
@@ -58,7 +25,6 @@ function SearchResultsContent() {
   const [hasMore, setHasMore] = useState(true);
   const [searchInfo, setSearchInfo] = useState<string>("");
 
-  // ⚠️ Este efecto solo se dispara cuando cambian los términos de búsqueda
   useEffect(() => {
     const fetchInitialStores = async () => {
       setLoading(true);
@@ -144,7 +110,7 @@ function SearchResultsContent() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {stores.map((store) => (
-              <StoreCard key={store.id} store={store} />
+              <StoreCard key={store.id} store={store} /> 
             ))}
           </div>
 

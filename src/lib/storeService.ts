@@ -1,85 +1,30 @@
 import { db, storage } from "@/lib/firebase";
 import {
-  doc,
-  setDoc,
-  collection,
+  ProductData,
+  Store
+} from "@/lib/interfaces";
+import {
   addDoc,
-  getDoc,
-  serverTimestamp,
-  getDocs,
-  query,
-  limit,
-  startAfter,
-  where,
-  QueryDocumentSnapshot,
-  QueryConstraint,
-  updateDoc,
+  collection,
   deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
   orderBy,
+  query,
+  QueryConstraint,
+  QueryDocumentSnapshot,
+  serverTimestamp,
+  setDoc,
+  startAfter,
+  updateDoc,
+  where,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { v4 as uuidv4 } from 'uuid';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { jsPDF } from "jspdf";
 import * as QRCode from 'qrcode';
-
-interface StoreData {
-  userId: string;
-  name: string;
-  description?: string;
-  address: string;
-  phone?: string;
-  city?: string;
-  category: string;
-  coverImage?: string;
-  socialMedia?: { platform: string; link: string }[];
-  tags: string[];
-  stars: number;
-  views: number;
-  clicks: number;
-  whatsappClicks: number;
-  productSells: number;
-  followers: number;
-}
-
-interface ProductDataBase {
-  name: string;
-  description?: string;
-  price: number;
-  images: string[];
-  isFeatured?: boolean;
-}
-
-interface ProductData extends ProductDataBase {
-  storeId: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  imageUrl?: string;
-  images: string[]; 
-}
-
-export interface Store {
-  id: string;
-  userId: string;
-  name: string;
-  category: string;
-  description?: string;
-  city?: string;
-  address?: string;
-  phone?: string;
-  coverImage?: string;
-  products?: Product[]; // Include id in the product type within Store
-  socialMedia?: SocialMediaLink[];
-}
-
-export interface SocialMediaLink {
-  platform: string;
-  link: string;
-}
+import { v4 as uuidv4 } from 'uuid';
 
 export const uploadStoreCoverImage = async (file: File, storeId: string): Promise<string | null> => {
   try {
@@ -93,7 +38,7 @@ export const uploadStoreCoverImage = async (file: File, storeId: string): Promis
   }
 };
 
-export const createStore = async (storeData: StoreData): Promise<string> => {
+export const createStore = async (storeData: Store): Promise<string> => {
   try {
     const storeId = uuidv4();
     const storeRef = doc(db, "stores", storeId);
@@ -381,7 +326,7 @@ export const uploadProductImage = async (file: File, storeId: string): Promise<s
   }
 };
 
-export const updateStore = async (storeId: string, storeData: Partial<StoreData>): Promise<boolean> => {
+export const updateStore = async (storeId: string, storeData: Partial<Store>): Promise<boolean> => {
   try {
     const storeRef = doc(db, "stores", storeId);
     await updateDoc(storeRef, {
