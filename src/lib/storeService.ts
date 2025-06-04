@@ -228,7 +228,6 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
 
     let logoHeight = 88;
     let logoWidth = 88;
-    //se vuelve a reasignar las variables por problemas de typesccript  
     logoHeight = 88;
     logoWidth = 88;
     if (logoUrl) {
@@ -315,7 +314,7 @@ export const generateStoreQRPDF = async (store: Store, storeUrl: string, logoUrl
 
 export const uploadProductImage = async (file: File, storeId: string): Promise<string | null> => {
   try {
-    const productId = uuidv4(); // Generate a unique ID for the product image
+    const productId = uuidv4(); 
     const storageRef = ref(storage, `stores/${storeId}/products/${productId}/${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
@@ -397,7 +396,6 @@ export const getPaginatedStoresByCriteria = async (
     for (const doc of snapshot.docs) {
       const storeData = doc.data() as Omit<Store, "id" | "products">;
 
-      // Ciudad en frontend
       const matchesCity = !citySlug || storeData.city?.toLowerCase().trim() === citySlug.toLowerCase().trim();
       if (!matchesCity) continue;
 

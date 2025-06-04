@@ -1,44 +1,14 @@
+// src/app/categorias/[slug]/page.tsx (Assuming this path)
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getPaginatedStoresByCategory, Store } from "@/lib/storeService";
+import { getPaginatedStoresByCategory } from "@/lib/storeService";
+import { Store } from "@/lib/interfaces";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import { QueryDocumentSnapshot } from "firebase/firestore";
-
-interface StoreCardProps {
-  store: Store;
-}
-
-const StoreCard: React.FC<StoreCardProps> = ({ store }) => (
-  <div className="bg-white rounded-md shadow-md p-4">
-    <Link href={`/tienda/${store.id}`} className="block">
-      <div className="relative w-full h-32 rounded-md overflow-hidden mb-2">
-        {store.coverImage ? (
-          <Image
-            src={store.coverImage}
-            alt={`Portada de ${store.name}`}
-            layout="fill"
-            objectFit="cover"
-            onError={(e) => console.error("Error loading image:", e)}
-          />
-        ) : (
-          <div className="bg-gray-100 w-full h-full flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Sin imagen</span>
-          </div>
-        )}
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-1">{store.name}</h3>
-      {store.description && (
-        <p className="text-sm text-muted-foreground truncate">{store.description}</p>
-      )}
-      <p className="text-sm text-muted-foreground">Categoría: {store.category}</p>
-    </Link>
-  </div>
-);
+import StoreCard from "../../../../components/StoreCard";
 
 export default function CategoryStoresPage() {
   const params = useParams();
@@ -64,10 +34,11 @@ export default function CategoryStoresPage() {
 
         setStores((prev) => (isInitial ? newStores : [...prev, ...newStores]));
         setLastVisible(newLastVisible);
-        setHasMore(newStores.length === 6);
+        setHasMore(newStores.length === 6); 
         setCategoryName(slug);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Error desconocido");
+        console.error("Error fetching stores:", e);
+        setError(e instanceof Error ? e.message : "Error desconocido al cargar las tiendas.");
         setHasMore(false);
       } finally {
         setLoading(false);
@@ -77,14 +48,14 @@ export default function CategoryStoresPage() {
   );
 
   useEffect(() => {
-    if (!slug) return;
-
-    setStores([]);
-    setLastVisible(null);
-    setHasMore(true);
-    setError(null);
-    fetchStores(true);
-  }, [slug]);
+    if (slug) {
+      setStores([]);
+      setLastVisible(null);
+      setHasMore(true);
+      setError(null);
+      fetchStores(true);
+    }
+  }, [slug, fetchStores]); 
 
   const loadMore = () => {
     if (!loading && hasMore) {
@@ -93,43 +64,46 @@ export default function CategoryStoresPage() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-xl font-bold mb-6">
+    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center capitalize">
         {categoryName
-          ? `Tiendas en la categoría: ${categoryName}`
+          ? `Tiendas en la categoría: ${decodeURIComponent(categoryName).replace(/-/g, ' ')}`
           : "Cargando categoría..."}
       </h1>
 
       {loading && stores.length === 0 ? (
-        <div className="flex justify-center items-center py-6">
-          <Loader2 className="animate-spin h-10 w-10 mr-2" />
-          Cargando tiendas...
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="animate-spin h-12 w-12 text-primary mr-3" />
+          <span className="text-lg text-gray-700">Cargando tiendas...</span>
         </div>
       ) : error ? (
-        <p className="text-center text-red-500 py-4">{error}</p>
+        <p className="text-center text-red-600 py-10 text-lg">{error}</p>
       ) : stores.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {stores.map((store) => (
               <StoreCard key={store.id} store={store} />
             ))}
           </div>
 
           {hasMore && (
-            <div className="flex justify-center mt-6">
-              <Button onClick={loadMore} disabled={loading}>
+            <div className="flex justify-center mt-12">
+              <Button onClick={loadMore} disabled={loading} className="px-8 py-3 text-lg">
                 {loading ? (
-                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  <>
+                    <Loader2 className="animate-spin h-5 w-5 mr-3" />
+                    Cargando...
+                  </>
                 ) : (
-                  "Cargar más"
+                  "Cargar más tiendas"
                 )}
               </Button>
             </div>
           )}
         </>
       ) : (
-        <p className="text-center text-muted-foreground py-4">
-          No hay tiendas en esta categoría.
+        <p className="text-center text-gray-500 py-10 text-xl">
+          No se encontraron tiendas en esta categoría.
         </p>
       )}
     </div>
