@@ -12,33 +12,8 @@ import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Link from "next/link";
 import { Edit, Download } from "lucide-react";
+import { Store } from "@/lib/interfaces";
 
-export interface SocialMediaLink {
-  platform: string;
-  link: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  imageUrl?: string;
-  images: string[];
-}
-
-export interface Store {
-  id: string;
-  userId: string;
-  name: string;
-  category: string;
-  description?: string;
-  address?: string;
-  phone?: string;
-  coverImage?: string;
-  products?: Product[];
-  socialMedia?: SocialMediaLink[];
-}
 
 const socialMediaConfig: { [key: string]: { color: string } } = {
   facebook: { color: "#1877F2" },
