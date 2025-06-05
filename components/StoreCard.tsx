@@ -21,7 +21,6 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => {
   const starRating = store.stars || 0;
   const ratingsCount = store.views || 0; 
 
-
   const displayedTags = (store.tags || []).slice(0, 5); 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full">
