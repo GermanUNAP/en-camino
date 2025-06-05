@@ -21,38 +21,22 @@ const StoreCard: React.FC<StoreCardProps> = ({ store }) => {
   const starRating = store.stars || 0;
   const ratingsCount = store.views || 0; 
 
-  const imagesToShow = store.coverImage
-    ? [store.coverImage, ...(store.storeImages || [])]
-    : (store.storeImages || []);
 
   const displayedTags = (store.tags || []).slice(0, 5); 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full">
       <Link href={`/tienda/${store.id}`} className="block h-full">
         <div className="relative w-full h-48 sm:h-56 md:h-64 rounded-t-lg overflow-hidden">
-          {imagesToShow.length > 0 ? (
-            <Carousel className="w-full h-full">
-              <CarouselContent>
-                {imagesToShow.map((imageSrc, index) => (
-                  <CarouselItem key={index} className="w-full h-full">
-                    <Image
-                      src={imageSrc}
-                      alt={`Imagen de ${store.name} ${index + 1}`}
-                      layout="fill"
-                      objectFit="cover"
-                      className="transition-transform duration-300 hover:scale-105"
-                      onError={(e) => console.error("Error loading image:", e)}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {imagesToShow.length > 1 && (
-                <>
-                  <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 size-8 sm:size-10 text-white hover:text-gray-200 bg-black/40 hover:bg-black/60 rounded-full" />
-                  <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 size-8 sm:size-10 text-white hover:text-gray-200 bg-black/40 hover:bg-black/60 rounded-full" />
-                </>
-              )}
-            </Carousel>
+          {store.coverImage ? (
+            <Image
+              src={store.coverImage}
+              alt={`Portada de ${store.name}`}
+              fill
+              className="object-contain w-full h-full"
+              onError={(e) => {
+                console.error("Error loading image:", e);
+              }}
+            />
           ) : (
             <div className="bg-gray-100 w-full h-full flex items-center justify-center">
               <span className="text-gray-500 text-sm">Sin imagen</span>
