@@ -5,21 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { app } from "@/lib/firebase";
-import { createStore, uploadStoreCoverImage } from "@/lib/storeService";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import dynamic from 'next/dynamic';
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState, useMemo } from 'react';
-import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid';
 import {
-  Store,
-  SocialMediaLink,
-  SubscriptionPlan,
   Payment,
   PlanDefinition,
   PlanTypeEnum,
+  SocialMediaLink,
+  Store,
+  SubscriptionPlan,
 } from "@/lib/interfaces";
+import { createStore, uploadStoreCoverImage } from "@/lib/storeService";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { 
+  collection,
+  getDocs,
+  getFirestore,
+  query,
+  where } from "firebase/firestore";
+import dynamic from 'next/dynamic';
+import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
 
 interface MapComponentProps {
   lat: number | undefined;
@@ -58,6 +64,8 @@ export default function CreateStorePage() {
   const [isSubmittingStore, setIsSubmittingStore] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanDefinition | null>(null);
   const [isIncubatorParticipant, setIsIncubatorParticipant] = useState(false);
+  const [incubatorCode, setIncubatorCode] = useState("")
+  const [validCode, setValidCode] = useState(false);
 
   const plans: PlanDefinition[] = useMemo(() => [
     {
@@ -69,19 +77,19 @@ export default function CreateStorePage() {
     {
       name: "Plan Crece",
       weeklyCost: 18.00,
-      description: ["Todo lo anterior", "Catálogo con video", "Posicionamiento local", "Soporte personalizado"],
+      description: ["Todo lo anterior +", "Catálogo con video", "Posicionamiento local", "Soporte personalizado"],
       planType: PlanTypeEnum.CRECE,
     },
     {
       name: "Plan Pro+",
       weeklyCost: 36.00,
-      description: ["Todo lo anterior", "Publicidad destacada", "Prioridad en búsquedas", "Estadísticas", "Asesoría mensual"],
+      description: ["Todo lo anterior +", "Publicidad destacada", "Prioridad en búsquedas", "Estadísticas", "Asesoría mensual"],
       planType: PlanTypeEnum.PRO_PLUS,
     },
     {
       name: "Publicidad Empresarial",
       weeklyCost: 100.00,
-      description: ["Para empresas que desean promocionar productos o servicios de forma puntual"],
+      description: ["Para empresas que desean promocionar productos o a nivel nacional"],
       planType: PlanTypeEnum.EMPRESA,
     },
   ], []);
@@ -183,7 +191,7 @@ export default function CreateStorePage() {
       const coverImageUrls: string[] = [];
       if (selectedCoverImages.length > 0) {
         for (const imageFile of selectedCoverImages) {
-          const uploadResult = await uploadStoreCoverImage(imageFile, uuidv4());
+          const uploadResult = await uploadStoreCoverImage(imageFile, user.uid);
           if (uploadResult) {
             coverImageUrls.push(uploadResult);
           } else {
@@ -253,9 +261,21 @@ export default function CreateStorePage() {
   };
 
   const handleCoverImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
-      setSelectedCoverImages((prevImages) => [...prevImages, ...filesArray]);
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      
+      const filteredFiles = filesArray.filter(file => 
+        validImageTypes.includes(file.type)
+      );
+
+      if (filteredFiles.length !== filesArray.length) {
+        toast.error("Solo se permiten archivos de imagen (JPEG, PNG, WEBP)");
+      }
+
+      if (filteredFiles.length > 0) {
+        setSelectedCoverImages((prevImages) => [...prevImages, ...filteredFiles]);
+      }
     }
   };
 
@@ -311,6 +331,36 @@ export default function CreateStorePage() {
     setLongitude(lng);
   };
 
+  const validateCode = async (code: string): Promise<void> => {
+    if (code.trim() === "") {
+      toast("El código no es válido");
+      setValidCode(false);
+      return;
+    }
+
+    try {
+      const db = getFirestore(app);
+      const codigosRef = collection(db, "codigos");
+      const q = query(
+        codigosRef,
+        where("code", "==", code),
+        where("activationStatus", "==", false)
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        setValidCode(true);
+      } else {
+        toast("El código no existe o ya fue activado.");
+        setValidCode(false);
+      }
+    } catch (error) {
+      console.error("Error al validar el código:", error);
+      toast("Ocurrió un error al validar el código.");
+      setValidCode(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Crear una nueva tienda</h1>
@@ -330,12 +380,12 @@ export default function CreateStorePage() {
                   <div
                     key={plan.name}
                     className={`p-6 border rounded-lg shadow-sm cursor-pointer transition-all duration-200
-                      ${selectedPlan?.name === plan.name ? "border-green-500 ring-2 ring-green-300 bg-green-50" : "border-gray-200 hover:border-gray-300"}
+                      ${selectedPlan?.name === plan.name ? "border-dark-500 ring-2 ring-dark-300 bg-dark-50" : "border-gray-200 hover:border-gray-300"}
                     `}
                     onClick={() => setSelectedPlan(plan)}
                   >
                     <h3 className="text-xl font-bold mb-2 text-gray-800">{plan.name}</h3>
-                    <p className="text-2xl font-extrabold text-green-700 mb-3">S/ {plan.weeklyCost.toFixed(2)} <span className="text-base text-gray-500 font-normal">semanales</span></p>
+                    <p className="text-2xl font-extrabold text-dark-700 mb-3">S/ {plan.weeklyCost.toFixed(2)} <span className="text-base text-gray-500 font-normal">semanales</span></p>
                     <ul className="list-disc list-inside text-gray-700 space-y-1">
                       {plan.description.map((item, idx) => (
                         <li key={idx}>{item}</li>
@@ -352,26 +402,38 @@ export default function CreateStorePage() {
                     type="checkbox"
                     checked={isIncubatorParticipant}
                     onChange={(e) => setIsIncubatorParticipant(e.target.checked)}
-                    className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500"
+                    className="mr-2 h-4 w-4 text-dark-600 focus:ring-dark-500"
                   />
                   <Label htmlFor="isIncubatorParticipant" className="text-sm font-medium text-gray-700">
                     Participo en una incubadora, universidad o programa público de formación.
                   </Label>
                 </div>
                 {isIncubatorParticipant && selectedPlan && (
-                  <p className="text-sm text-green-600 mt-2">
-                    ¡Felicidades! Se aplicará un **50% de descuento** al plan sugerido (S/ {finalWeeklyCost.toFixed(2)} semanales) durante las primeras 8 semanas.
-                    <span className="block text-xs text-gray-500">
-                      (La aplicación del descuento por las 8 semanas se gestionará en el sistema de facturación/renovación del plan).
-                    </span>
-                  </p>
+                  <div>
+                    <div>
+                      <Input 
+                        id="incubadoraCode"
+                        value={incubatorCode}
+                        onChange={(e) => setIncubatorCode(e.target.value)}
+                        required={isIncubatorParticipant}
+                      />
+                      <Button onClick={()=>validateCode(incubatorCode)} title="ValidarCódigo"/>
+                    </div>
+                    <p className="text-sm text-dark-600 mt-2">
+                      ¡Felicidades! Se aplicará un **50% de descuento** al plan sugerido (S/ {finalWeeklyCost.toFixed(2)} semanales) durante las primeras 8 semanas.
+                      <span className="block text-xs text-gray-500">
+                        (La aplicación del descuento por las 8 semanas se gestionará en el sistema de facturación/renovación del plan).
+                      </span>
+                    </p>
+                  </div> 
+                  
                 )}
               </div>
 
               <Button
                 onClick={handleNextStep}
-                className="w-full py-3 text-lg bg-green-600 hover:bg-green-700 text-white"
-                disabled={!selectedPlan}
+                className="w-full py-3 text-lg bg-black hover:bg-black text-white"
+                disabled={!selectedPlan || (isIncubatorParticipant && !validCode)}
               >
                 Continuar con el Plan Seleccionado
               </Button>
@@ -387,7 +449,7 @@ export default function CreateStorePage() {
                     onClick={() => goToStep(step)}
                     className={`flex-1 text-center py-2 border-b-2 transition-colors duration-200
                       ${currentStep >= step
-                        ? "border-green-600 text-green-600 font-semibold"
+                        ? "border-dark-600 text-dark-600 font-semibold"
                         : "border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600"
                       }
                       ${step > currentStep ? "cursor-not-allowed" : "cursor-pointer"}
@@ -410,7 +472,7 @@ export default function CreateStorePage() {
                         value={storeName}
                         onChange={(e) => setStoreName(e.target.value)}
                         required
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                        className="border-gray-300 focus:border-dark-500 focus:ring-dark-500"
                       />
                     </div>
 
@@ -421,7 +483,7 @@ export default function CreateStorePage() {
                         value={storeDescription}
                         onChange={(e) => setStoreDescription(e.target.value)}
                         rows={3}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                        className="border-gray-300 focus:border-dark-500 focus:ring-dark-500"
                       />
                     </div>
 
@@ -432,7 +494,7 @@ export default function CreateStorePage() {
                         value={storeAddress}
                         onChange={(e) => setStoreAddress(e.target.value)}
                         required
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                        className="border-gray-300 focus:border-dark-500 focus:ring-dark-500"
                       />
                     </div>
 
@@ -447,7 +509,7 @@ export default function CreateStorePage() {
                         maxLength={9}
                         pattern="9\d{8}"
                         title="El número debe tener 9 dígitos y empezar con 9."
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                        className="border-gray-300 focus:border-dark-500 focus:ring-dark-500"
                       />
                       {storePhone && !/^(9\d{8})$/.test(storePhone) && (
                         <p className="text-red-500 text-xs mt-1">Formato inválido. Debe ser un número de 9 dígitos que empiece con 9.</p>
@@ -458,7 +520,7 @@ export default function CreateStorePage() {
                       <Label htmlFor="category" className="pb-1 block text-sm font-medium text-gray-700">Categoría</Label>
                       <select
                         id="category"
-                        className="w-full border rounded p-2 focus:ring-green-500 focus:border-green-500 text-gray-700"
+                        className="w-full border rounded p-2 focus:ring-dark-500 focus:border-dark-500 text-gray-700"
                         value={storeCategory}
                         onChange={(e) => setStoreCategory(e.target.value)}
                         required
@@ -500,7 +562,7 @@ export default function CreateStorePage() {
                       {isAddingSocialMedia ? (
                         <div className="flex flex-col space-y-2 mt-2 p-3 border rounded-md bg-gray-50">
                           <select
-                            className="w-full border rounded p-2 focus:ring-green-500 focus:border-green-500 text-gray-700 text-sm"
+                            className="w-full border rounded p-2 focus:ring-dark-500 focus:border-dark-500 text-gray-700 text-sm"
                             value={newSocialMedia.platform}
                             onChange={(e) => setNewSocialMedia({ ...newSocialMedia, platform: e.target.value })}
                             required
@@ -510,9 +572,7 @@ export default function CreateStorePage() {
                             <option value="Instagram">Instagram</option>
                             <option value="TikTok">TikTok</option>
                             <option value="YouTube">YouTube</option>
-                            <option value="Twitter">Twitter</option>
                             <option value="LinkedIn">LinkedIn</option>
-                            <option value="Website">Sitio Web</option>
                           </select>
                           <Input
                             placeholder="Link completo (ej: https://facebook.com/tutienda)"
@@ -521,10 +581,10 @@ export default function CreateStorePage() {
                               setNewSocialMedia({ ...newSocialMedia, link: e.target.value })
                             }
                             required
-                            className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                            className="border-gray-300 focus:border-black focus:ring-dark-500"
                           />
                           <div className="flex space-x-2">
-                            <Button type="button" onClick={handleAddSocialMediaLink} className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                            <Button type="button" onClick={handleAddSocialMediaLink} className="flex-1 bg-black hover:bg-dark-700 text-white">
                               Añadir
                             </Button>
                             <Button type="button" variant="outline" onClick={() => setIsAddingSocialMedia(false)} className="flex-1 border-gray-300 hover:bg-gray-100">
@@ -558,9 +618,9 @@ export default function CreateStorePage() {
                               handleAddTag();
                             }
                           }}
-                          className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                          className="border-gray-300 focus:border-black focus:ring-dark-500"
                         />
-                        <Button type="button" onClick={handleAddTag} disabled={storeTags.length >= 10 || newTag.trim() === ""} className="bg-green-600 hover:bg-green-700 text-white">
+                        <Button type="button" onClick={handleAddTag} disabled={storeTags.length >= 10 || newTag.trim() === ""} className="bg-black  text-white">
                           Agregar Etiqueta
                         </Button>
                       </div>
@@ -599,7 +659,7 @@ export default function CreateStorePage() {
                         type="checkbox"
                         checked={isOnlineStore}
                         onChange={(e) => setIsOnlineStore(e.target.checked)}
-                        className="mr-2 h-4 w-4 text-green-600 focus:ring-green-500"
+                        className="mr-2 h-4 w-4 text-dark-600 focus:ring-dark-500"
                       />
                       <Label htmlFor="isOnlineStore" className="text-sm font-medium text-gray-700">
                         Mi tienda es solo online (no tiene ubicación física)
@@ -684,10 +744,10 @@ export default function CreateStorePage() {
                     <div className="bg-gray-50 p-4 rounded-md mb-6 shadow-sm">
                       <h3 className="text-lg font-semibold mb-3 border-b pb-2 text-gray-800">Datos de tu Tienda:</h3>
                       {selectedPlan && (
-                        <p className="mb-1"><strong className="text-gray-700">Plan Seleccionado:</strong> {selectedPlan.name} (<span className="text-green-700 font-bold">S/ {finalWeeklyCost.toFixed(2)} semanales</span>)</p>
+                        <p className="mb-1"><strong className="text-gray-700">Plan Seleccionado:</strong> {selectedPlan.name} (<span className="text-dark-700 font-bold">S/ {finalWeeklyCost.toFixed(2)} semanales</span>)</p>
                       )}
                       {isIncubatorParticipant && (
-                        <p className="mb-1 text-green-600 text-sm">Descuento de 50% aplicado para la primera semana.</p>
+                        <p className="mb-1 text-dark-600 text-sm">Descuento de 50% aplicado para la primera semana.</p>
                       )}
                       <p className="mb-1"><strong className="text-gray-700">Nombre:</strong> {storeName}</p>
                       {storeDescription && <p className="mb-1"><strong className="text-gray-700">Descripción:</strong> {storeDescription}</p>}
@@ -700,7 +760,7 @@ export default function CreateStorePage() {
                           <strong className="text-gray-700">Redes Sociales:</strong>
                           <ul className="list-disc list-inside ml-4 text-sm mt-1">
                             {socialMediaLinks.map((link, index) => (
-                              <li key={index}>{link.platform}: <a href={link.link} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline break-all">{link.link}</a></li>
+                              <li key={index}>{link.platform}: <a href={link.link} target="_blank" rel="noopener noreferrer" className="text-dark-600 hover:underline break-all">{link.link}</a></li>
                             ))}
                           </ul>
                         </div>
@@ -743,14 +803,14 @@ export default function CreateStorePage() {
                     <div className="mb-4">
                       <Label className="pb-1 block text-lg font-bold text-gray-800">Selecciona un Método de Pago</Label>
                       {selectedPlan && (
-                        <p className="text-sm text-gray-600 mb-3">El costo de la primera semana para tu plan **{selectedPlan.name}** es de <span className="font-bold text-green-700">S/ {finalWeeklyCost.toFixed(2)}</span>.</p>
+                        <p className="text-sm text-gray-600 mb-3">El costo de la primera semana para tu plan **{selectedPlan.name}** es de <span className="font-bold text-dark-700">S/ {finalWeeklyCost.toFixed(2)}</span>.</p>
                       )}
                       <div className="flex space-x-4">
                         <Button
                           type="button"
                           variant={paymentMethod === 'yape' ? 'default' : 'outline'}
                           onClick={() => setPaymentMethod('yape')}
-                          className={`flex-1 py-3 text-base ${paymentMethod === 'yape' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-gray-300 hover:bg-gray-100'}`}
+                          className={`flex-1 py-3 text-base ${paymentMethod === 'yape' ? 'bg-dark-600 hover:bg-dark-700 text-white' : 'border-gray-300 hover:bg-gray-100'}`}
                         >
                           Pagar con Yape
                         </Button>
@@ -758,7 +818,7 @@ export default function CreateStorePage() {
                           type="button"
                           variant={paymentMethod === 'card' ? 'default' : 'outline'}
                           onClick={() => setPaymentMethod('card')}
-                          className={`flex-1 py-3 text-base ${paymentMethod === 'card' ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-gray-300 hover:bg-gray-100'}`}
+                          className={`flex-1 py-3 text-base ${paymentMethod === 'card' ? 'bg-dark-600 hover:bg-dark-700 text-white' : 'border-gray-300 hover:bg-gray-100'}`}
                         >
                           Pagar con Tarjeta de Crédito
                         </Button>
@@ -774,13 +834,13 @@ export default function CreateStorePage() {
                     </Button>
                   )}
                   {currentStep < totalSteps ? (
-                    <Button type="button" onClick={handleNextStep} className="ml-auto bg-green-600 hover:bg-green-700 text-white">
+                    <Button type="button" onClick={handleNextStep} className="ml-auto bg-black  text-white">
                       Siguiente
                     </Button>
                   ) : (
-                    <Button type="submit" disabled={isSubmittingStore || !paymentMethod} className="ml-auto bg-green-600 hover:bg-green-700 text-white">
+                    <Button type="submit" disabled={isSubmittingStore || !paymentMethod} className="ml-auto bg-black hover:bg-dark-700 text-white">
                       {isSubmittingStore ? "Creando tienda..." : "Confirmar y Crear Tienda"}
-                    </Button>
+                    </Button> 
                   )}
                 </div>
               </form>
