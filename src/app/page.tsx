@@ -6,10 +6,9 @@ import { getLatestProductsFromFirebase, Product } from "@/lib/productoService";
 import { getPaginatedStores } from "@/lib/storeService";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SimpleProductCard from "../../components/SimpleProductCard";
 import StoreCard from "../../components/StoreCard";
-
 
 interface SimpleProductCardProps {
   product: Product;
@@ -24,6 +23,28 @@ export default function HomePage() {
   const [errorStores, setErrorStores] = useState<string | null>(null);
   const [errorProducts, setErrorProducts] = useState<string | null>(null);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    let offset = 0;
+
+    const scroll = () => {
+      if (!container) return;
+      offset -= 0.5; // velocidad
+      if (Math.abs(offset) >= container.scrollWidth / 2) {
+        offset = 0;
+      }
+      container.style.transform = `translateX(${offset}px)`;
+    };
+
+    const interval = setInterval(scroll, 10);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const fetchLatestStores = async () => {
       setLoadingStores(true);
@@ -32,11 +53,9 @@ export default function HomePage() {
         const { stores } = await getPaginatedStores(null);
         setLatestStores(stores);
       } catch (e: unknown) {
-        if (e instanceof Error) {
-          setErrorStores(`Error al cargar las últimas tiendas: ${e.message}`);
-        } else {
-          setErrorStores("Error desconocido al cargar las últimas tiendas.");
-        }
+        setErrorStores(e instanceof Error
+          ? `Error al cargar las últimas tiendas: ${e.message}`
+          : "Error desconocido al cargar las últimas tiendas.");
       } finally {
         setLoadingStores(false);
       }
@@ -49,11 +68,9 @@ export default function HomePage() {
         const products = await getLatestProductsFromFirebase();
         setLatestProducts(products);
       } catch (e: unknown) {
-        if (e instanceof Error) {
-          setErrorProducts(`Error al cargar los últimos productos: ${e.message}`);
-        } else {
-          setErrorProducts("Error desconocido al cargar los últimos productos.");
-        }
+        setErrorProducts(e instanceof Error
+          ? `Error al cargar los últimos productos: ${e.message}`
+          : "Error desconocido al cargar los últimos productos.");
       } finally {
         setLoadingProducts(false);
       }
@@ -63,6 +80,7 @@ export default function HomePage() {
     fetchLatestProducts();
   }, []);
 
+  const logos = [1, 2, 3, 4, 5, 6, 7, 8];
 
   return (
     <div className="bg-gradient-to-br from-indigo-200 via-purple-300 to-pink-200 min-h-screen py-10">
@@ -73,11 +91,32 @@ export default function HomePage() {
         <p className="text-lg text-gray-600 mb-8">
           Cada escaneo, una historia que transforma.
         </p>
-        {/* <Button variant="outline" className="rounded-full px-8 py-3 font-semibold">
-          Escanee para empezar
-        </Button> */}
 
-        {/* Tiendas Destacadas */}
+        <section className="mt-10">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+            Empresas aliadas
+          </h2>
+          <div className="relative w-full overflow-hidden">
+            <div
+              className="flex w-max gap-4 px-2 py-2 transition-transform duration-75 ease-linear"
+              ref={scrollRef}
+            >
+              {[...logos, ...logos].map((i, index) => (
+                <Link href={`/tienda/${i}`} key={index}>
+                  <div className="w-[30vw] max-w-[150px] min-w-[100px] h-[60px] flex items-center justify-center bg-white shadow-sm rounded-md hover:scale-105 transition-transform cursor-pointer">
+                    <img
+                      src={`https://via.placeholder.com/80x40.png?text=Logo+${i}`}
+                      alt={`Empresa ${i}`}
+                      className="h-8 object-contain"
+                    />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Tiendas destacadas */}
         <section className="mt-12">
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">
             Negocios destacados
@@ -108,7 +147,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Productos Destacados */}
+        {/* Productos destacados */}
         <section className="mt-12">
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">
             Productos Destacados
@@ -134,12 +173,11 @@ export default function HomePage() {
           )}
           {latestProducts.length > 0 && (
             <div className="mt-4">
-              {/* Puedes añadir un enlace para ver todos los productos si lo implementas */}
-              {/* <Link href="/productos">
+              <Link href="/productos">
                 <Button variant="outline" className="rounded-full px-6 py-2 font-semibold text-gray-700 border-gray-400 hover:bg-gray-100">
                   Ver todos los productos
                 </Button>
-              </Link> */}
+              </Link>
             </div>
           )}
         </section>

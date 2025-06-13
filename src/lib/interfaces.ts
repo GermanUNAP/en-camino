@@ -66,9 +66,9 @@ export interface Store {
   city?: string;
   address: string;
   phone?: string;
-  coverImage?: string; // URL de la imagen principal
+  coverImage?: string; 
   tags: string[];
-  storeImages?: string[]; // URLs de todas las imágenes de portada/galería
+  storeImages?: string[]; 
   products?: Product[];
   socialMedia?: SocialMediaLink[];
   latitude?: number;
